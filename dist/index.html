@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prebel Conecta · Mi espacio</title><link rel="stylesheet" href="style.css"></head>
+<body><div class="cover"><header><a class="brand" href="#inicio"><img src="assets/prebel.svg" alt="Prebel"><span>Conecta</span></a><nav aria-label="Principal"><a href="#inicio">Mi espacio</a><a href="#solicitudes">Mis solicitudes</a><a href="#preguntas">Preguntas frecuentes</a></nav><label for="perfil">Perfil de demo <select id="perfil"></select></label></header>
+<section class="hero"><div><small>PORTAL DEL COLABORADOR</small><h1>Hola, <b id="nombre" style="font-weight:inherit"></b><span>.</span></h1><p><span id="puesto"></span></p></div></section></div><main>
+<div class="layout"><section class="panel search"><small>Consulta predictiva</small><h2>¿Qué necesitas hoy?</h2><label for="query">Busca un trámite o escribe una pregunta</label><input id="query" type="search" placeholder="Ej. ¿Cuántos días de vacaciones tengo?"><div id="matches" aria-live="polite"></div></section>
+<aside class="balance"><small>MI SALDO DE VACACIONES</small><div><strong id="balance"></strong> días hábiles</div><a href="#vacaciones">Planear vacaciones <b>↗</b></a></aside></div>
+<section><h2>Mis servicios</h2><div class="services" id="services"></div></section>
+<section id="preguntas" class="panel faq" aria-labelledby="faq-title"><h2 id="faq-title">Preguntas frecuentes</h2><p class="muted">Respuestas de ejemplo para tu perfil.</p><div id="faq-list"></div></section></main>
+<footer>Prebel Conecta <span>Demostración · Datos ficticios</span></footer>
+<dialog id="modal"><div class="dialoghead"><small>PREBEL CONECTA</small><button id="close" aria-label="Cerrar">×</button></div><section id="detail"></section></dialog><script src="catalogo.js"></script><script src="app.js"></script></body></html>
