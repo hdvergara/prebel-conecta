@@ -1,0 +1,37 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const sandbox = {structuredClone, console};
+vm.createContext(sandbox);
+for (const file of ['catalogo.js','conocimiento.js','modelo.js']) {
+  vm.runInContext(fs.readFileSync('dist/'+file,'utf8'), sandbox);
+}
+const M = vm.runInContext('Modelo',sandbox);
+const state = M.inicial();
+assert.equal(M.saldo(state,'valentina'),12);
+assert.ok(M.buscar(state,M.persona('valentina'),'carta para el banco').some(a=>a.id==='certificado'));
+assert.ok(!M.buscar(state,M.persona('valentina'),'guantes').length);
+assert.ok(M.buscar(state,M.persona('mateo'),'guantes').some(a=>a.id==='dotacion'));
+const next = new Date(); next.setDate(next.getDate()+7);
+while(next.getDay()!==1)next.setDate(next.getDate()+1);
+const start=M.fecha(next);next.setDate(next.getDate()+4);const end=M.fecha(next);
+const item=M.crearCaso(state,'valentina',{tipo:'Vacaciones',inicio:start,fin:end});
+assert.equal(M.saldo(state,'valentina'),7);
+assert.throws(()=>M.crearCaso(state,'valentina',{tipo:'Vacaciones',inicio:start,fin:end}),/activa/);
+assert.throws(()=>M.actualizarCaso(state,'mateo',item.id,'Cancelada','Cancelar'),/No puedes/);
+M.actualizarCaso(state,'laura',item.id,'Devuelta','Por favor revisar fechas');
+assert.equal(M.saldo(state,'valentina'),12);
+assert.throws(()=>M.actualizarCaso(state,'laura',item.id,'Aprobada','Sí'),/final/);
+const help=M.crearCaso(state,'mateo',{tipo:'Consulta',tema:'SST',asunto:'Gafas',mensaje:'Consultar'});
+M.actualizarCaso(state,'laura',help.id,'Esperando información','Indica turno');
+M.actualizarCaso(state,'mateo',help.id,'Recibido','Turno mañana');
+M.actualizarCaso(state,'laura',help.id,'Resuelto','Consulta atendida');
+assert.equal(help.historial.length,4);
+state.borradores.certificado={titulo:'Carta para el banco',respuesta:'Contenido actualizado'};
+M.publicar(state,'certificado','laura');
+assert.equal(state.articulos.find(a=>a.id==='certificado').version,2);
+assert.ok(M.buscar(state,M.persona('mateo'),'carta banco')[0].respuesta.includes('actualizado'));
+const legacy = [{kind:'Vacaciones',status:'Pendiente',start,end,days:5}];
+const migrated = M.leer({getItem:k=>k==='prebel-demo-v1'?JSON.stringify(legacy):null});
+assert.equal(M.saldo(migrated,'valentina'),7);
+console.log('OK: búsqueda por perfil, saldo, solapamientos, estados, aislamiento, publicación y migración.');
