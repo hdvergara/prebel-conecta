@@ -8,6 +8,8 @@ for (const file of ['catalogo.js','conocimiento.js','modelo.js']) {
 }
 const M = vm.runInContext('Modelo',sandbox);
 const state = M.inicial();
+assert.equal(M.dias('2027-02-30','2027-03-01'),0);
+assert.equal(M.dias('2027-01-01','9999-01-01'),0);
 assert.equal(M.saldo(state,'valentina'),12);
 assert.ok(M.buscar(state,M.persona('valentina'),'carta para el banco').some(a=>a.id==='certificado'));
 assert.ok(!M.buscar(state,M.persona('valentina'),'guantes').length);

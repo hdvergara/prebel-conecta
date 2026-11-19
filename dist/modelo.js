@@ -66,6 +66,8 @@ const Modelo = (() => {
   const saldo = (state,id) => persona(id).saldo - state.casos.filter(c=>c.persona===id && c.tipo==='Vacaciones' && !cerrados.includes(c.estado)).reduce((n,c)=>n+c.dias,0);
   function dias(inicio,fin) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fin)) return 0;
+    const from=new Date(inicio+'T12:00:00'), to=new Date(fin+'T12:00:00');
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || fecha(from)!==inicio || fecha(to)!==fin || to-from>732*86400000) return 0;
     let count=0;
     for(let day=new Date(inicio+'T12:00:00');day<=new Date(fin+'T12:00:00');day.setDate(day.getDate()+1)) {
       if(day.getDay()%6!==0) count++;

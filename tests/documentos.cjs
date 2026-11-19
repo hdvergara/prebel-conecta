@@ -1,0 +1,15 @@
+const fs=require('node:fs');
+const vm=require('node:vm');
+const assert=require('node:assert/strict');
+const context={jspdf:require('../dist/vendor/jspdf.umd.min.js')};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync('dist/documentos.js','utf8'),context);
+const D=vm.runInContext('Documentos',context);
+const p={nombre:'Persona ficticia',cargo:'Operario',ingreso:'2025-01-01',salario:2200000};
+assert.ok(!D.certificado(p,false).lineas.some(l=>l.includes('2.200.000')));
+assert.ok(D.certificado(p,true).lineas.some(l=>l.includes('2.200.000')));
+const pdf=D.pdf(D.certificado(p,true),'PRUEBA');
+assert.equal(pdf.getNumberOfPages(),1);
+assert.ok(pdf.output().startsWith('%PDF-'));
+assert.ok(D.nomina(p,'Octubre 2026',1).lineas.some(l=>l.includes('2.074.000')));
+console.log('OK: PDF válido, certificado con/sin salario y neto del comprobante.');
