@@ -21,7 +21,7 @@ que estos comandos son todo lo que hace falta tras clonarlo en cualquier máquin
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 La primera vez que corras la API, `sentence-transformers` y el modelo de sentimiento
