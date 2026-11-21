@@ -1,0 +1,17 @@
+{
+  "fallback": "Fallback de prueba.",
+  "faq": [
+    {
+      "preguntas": ["pregunta uno", "variante uno"],
+      "respuesta": "Respuesta uno",
+      "ruta": "ruta-uno",
+      "area": "area-uno"
+    },
+    {
+      "preguntas": ["pregunta dos"],
+      "respuesta": "Respuesta dos",
+      "ruta": null,
+      "area": "area-dos"
+    }
+  ]
+}

@@ -26,3 +26,6 @@ with sqlite3.connect(root / "demo.sqlite3") as db:
     db.row_factory = sqlite3.Row
     data = {table:[dict(row) for row in db.execute("SELECT * FROM "+table)] for table in ("areas","personas","recursos")}
 (root / "dist" / "catalogo.js").write_text("const catalogo = "+json.dumps(data,ensure_ascii=False,indent=2)+";\n",encoding="utf-8")
+
+faq = json.loads((root / "model" / "faq_rrhh.json").read_text(encoding="utf-8"))
+(root / "dist" / "faq.js").write_text("const faqModel = "+json.dumps(faq,ensure_ascii=False,indent=2)+";\n",encoding="utf-8")

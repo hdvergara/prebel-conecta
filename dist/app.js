@@ -32,31 +32,49 @@ for (const recurso of recursos) {
   if (intent) intent[2] += ' ' + tags;
   else intents.push([recurso.id,recurso.titulo,tags]);
 }
+function ownerLabel(areaId) {
+  if (!areaId) return null;
+  const info = catalogo.areas.find(a => a.id === areaId);
+  return info.padre ? area(info.padre) + ' · ' + info.nombre : info.nombre;
+}
 const preguntas = [
-  {ruta:'saldo', titulo:'¿Dónde veo cuántos días de vacaciones tengo?', respuesta:'En Mi saldo de vacaciones aparecen tus días disponibles. Si tienes una solicitud pendiente, esos días ya están reservados.', enlace:'Ver mi saldo'},
-  {ruta:'prediccion', titulo:'¿Cuántos días de vacaciones tendré en unos meses?', respuesta:'Elige un plazo para estimar tu saldo futuro. La demo suma 1,25 días por mes a tu saldo disponible y supone que no tomarás más vacaciones durante ese período.', enlace:'Proyectar mi saldo'},
-  {ruta:'nomina', titulo:'¿Cómo descargo mi comprobante de pago?', respuesta:'Abre Nómina, elige uno de los tres períodos disponibles y pulsa Descargar comprobante.', enlace:'Abrir Nómina'},
-  {ruta:'certificado', titulo:'¿Puedo pedir un certificado laboral con salario?', respuesta:'Sí. En Certificados, elige Con salario o Sin salario antes de generarlo. Luego puedes descargarlo desde Mis solicitudes.', enlace:'Generar certificado'}
+  {id:'faq-saldo', ruta:'saldo', titulo:'¿Dónde veo cuántos días de vacaciones tengo?', respuesta:'En Mi saldo de vacaciones aparecen tus días disponibles. Si tienes una solicitud pendiente, esos días ya están reservados.', enlace:'Ver mi saldo'},
+  {id:'faq-prediccion', ruta:'prediccion', titulo:'¿Cuántos días de vacaciones tendré en unos meses?', respuesta:'Elige un plazo para estimar tu saldo futuro. La demo suma 1,25 días por mes a tu saldo disponible y supone que no tomarás más vacaciones durante ese período.', enlace:'Proyectar mi saldo'},
+  {id:'faq-nomina', ruta:'nomina', titulo:'¿Cómo descargo mi comprobante de pago?', respuesta:'Abre Nómina, elige uno de los tres períodos disponibles y pulsa Descargar comprobante.', enlace:'Abrir Nómina'},
+  {id:'faq-certificado', ruta:'certificado', titulo:'¿Puedo pedir un certificado laboral con salario?', respuesta:'Sí. En Certificados, elige Con salario o Sin salario antes de generarlo. Luego puedes descargarlo desde Mis solicitudes.', enlace:'Generar certificado'}
 ];
 for (const recurso of recursos.filter(r => r.contenido)) {
   const titulos = {dotacion:'¿Cómo pido el cambio de mis guantes o gafas?', ergonomia:'¿Cómo solicito una revisión de mi puesto de oficina?'};
-  if (titulos[recurso.id]) preguntas.push({ruta:recurso.id,titulo:titulos[recurso.id],respuesta:recurso.contenido,enlace:recurso.titulo});
+  if (titulos[recurso.id]) preguntas.push({id:'faq-'+recurso.id, ruta:recurso.id, titulo:titulos[recurso.id], respuesta:recurso.contenido, enlace:recurso.titulo});
 }
+const enlacesModelo = {vacaciones:'Planear vacaciones', nomina:'Abrir Nómina', certificado:'Generar certificado'};
+faqModel.faq.forEach((item,i) => {
+  preguntas.push({id:'faq-modelo-'+i, ruta:item.ruta, titulo:item.preguntas[0], respuesta:item.respuesta, enlace:item.ruta && enlacesModelo[item.ruta], area:item.area, palabras:item.preguntas.join(' ')});
+});
 intents.push(['preguntas','Preguntas frecuentes','preguntas frecuentes faq ayuda dudas']);
 for (const pregunta of preguntas) {
-  const id = 'faq-' + pregunta.ruta;
   const item = document.createElement('details');
-  item.id = id;
+  item.id = pregunta.id;
   const summary = document.createElement('summary');
   summary.textContent = pregunta.titulo;
   const answer = document.createElement('p');
   answer.textContent = pregunta.respuesta;
-  const link = document.createElement('a');
-  link.href = '#' + pregunta.ruta;
-  link.textContent = pregunta.enlace + ' →';
-  item.append(summary, answer, link);
+  item.append(summary, answer);
+  const owner = ownerLabel(pregunta.area);
+  if (owner) {
+    const tag = document.createElement('p');
+    tag.className = 'muted';
+    tag.textContent = owner;
+    item.append(tag);
+  }
+  if (pregunta.ruta) {
+    const link = document.createElement('a');
+    link.href = '#' + pregunta.ruta;
+    link.textContent = pregunta.enlace + ' →';
+    item.append(link);
+  }
   $('faq-list').append(item);
-  intents.push([id,pregunta.titulo,normalizeCatalog(pregunta.titulo)]);
+  intents.push([pregunta.id,pregunta.titulo,normalizeCatalog(pregunta.palabras || pregunta.titulo)]);
 }
 function normalizeCatalog(text) { return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 const key = persona.id === 'valentina' ? 'prebel-demo-v1' : 'prebel-demo-v1-' + persona.id;
@@ -78,9 +96,12 @@ function save() {
   try {localStorage.setItem(key,JSON.stringify(requests));} catch {}
   $('balance').textContent = available();
 }
+function rank(text) {
+  const words = normalize(text).split(/\W+/).filter(w=>w.length>2 && !['que','los','las','del','mis','una','por','con','tengo'].includes(w));
+  return intents.map(([id,label,keys])=>({id,label,score:words.filter(w=>keys.split(' ').some(k=>k.startsWith(w))).length})).filter(row=>row.score).sort((a,b)=>b.score-a.score);
+}
 function suggestions() {
-  const words = normalize($('query').value).split(/\W+/).filter(w=>w.length>2 && !['que','los','las','del','mis','una','por','con','tengo'].includes(w));
-  const ranked = intents.map(([id,label,keys])=>({id,label,score:words.filter(w=>keys.split(' ').some(k=>k.startsWith(w))).length})).filter(row=>row.score).sort((a,b)=>b.score-a.score);
+  const ranked = rank($('query').value);
   const options = $('query').value.trim() ? ranked.slice(0,3) : [
     ...intents.slice(0,2).map(([id,label])=>({id,label})),
     {id:'nomina', label:'¿Cómo descargo mi comprobante de nómina?'},
@@ -94,6 +115,42 @@ function show(title,body) {
   if(!modal.open) modal.showModal();
 }
 function action(route,label){return '<button class="primary" data-route="'+route+'">'+label+'</button>';}
+const MODEL_API = 'http://127.0.0.1:5000/reply';
+function escapeHtml(text) { return text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function modelReply(text) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1500);
+  return fetch(MODEL_API, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text}), signal: controller.signal})
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .catch(() => ({reply: faqModel.fallback, ruta: null, area: null, confianza: null, sentimiento: null}))
+    .finally(() => clearTimeout(timeout));
+}
+function sentimentLabel(s) {
+  if (!s) return 'No disponible (API local no activa)';
+  const emoji = {negativo:'😟', neutral:'😐', positivo:'🙂'}[s.etiqueta] || '';
+  return emoji+' '+s.etiqueta+' · '+Math.round(s.confianza*100)+'%';
+}
+function askAssistant(text) {
+  if (!text) return;
+  const box = $('model-box');
+  box.hidden = false;
+  $('model-query').textContent = text;
+  const quick = rank(text)[0];
+  $('model-quick').textContent = quick ? quick.label : 'Sin coincidencia rápida';
+  $('model-answer').textContent = 'Consultando…';
+  $('model-confidence').textContent = '—';
+  $('model-sentiment').textContent = '—';
+  $('model-owner').textContent = '';
+  $('model-action').innerHTML = '';
+  box.scrollIntoView({block:'center', behavior:'smooth'});
+  modelReply(text).then(({reply,ruta,area,confianza,sentimiento}) => {
+    $('model-answer').textContent = reply;
+    $('model-confidence').textContent = confianza != null ? Math.round(confianza*100)+'%' : 'No disponible (API local no activa)';
+    $('model-sentiment').textContent = sentimentLabel(sentimiento);
+    $('model-owner').textContent = ownerLabel(area) || '';
+    $('model-action').innerHTML = ruta ? action(ruta, enlacesModelo[ruta] || 'Ir a la sección') : '';
+  });
+}
 function weekdays(start,end){
   let count=0;
   for(let day=new Date(start+'T12:00:00');day<=new Date(end+'T12:00:00');day.setDate(day.getDate()+1)){
@@ -159,7 +216,7 @@ function historyView(){
 function route(){
   const pages={vacaciones:vacation,prediccion:forecast,nomina:payroll,solicitudes:historyView,certificado:certificate,saldo:()=>show('Mi saldo de vacaciones','<p class="status">'+available()+' días hábiles disponibles</p><p>Saldo inicial de la demo: '+persona.saldo+' días. Las solicitudes pendientes reservan días hasta que las canceles.</p>'+action('prediccion','Proyectar saldo'))};
   const id = location.hash.slice(1);
-  if (id.startsWith('faq-') && preguntas.some(p => id === 'faq-' + p.ruta)) {
+  if (id.startsWith('faq-') && preguntas.some(p => id === p.id)) {
     const item = $(id);
     if(modal.open)modal.close();
     item.open = true;
@@ -181,7 +238,11 @@ function route(){
 $('services').innerHTML=services.map(([id,title,desc,icon,tint])=>'<a class="service" href="#'+id+'" style="--tint:'+tint+'"><em aria-hidden="true">'+icon+'</em><b>'+title+'</b><span>'+desc+'</span></a>').join('');
 document.addEventListener('click',event=>{const btn=event.target.closest('[data-route]');if(btn){if(location.hash==='#'+btn.dataset.route)route();else location.hash=btn.dataset.route;}});
 $('query').oninput=suggestions;
-$('query').onkeydown=e=>{if(e.key==='Enter')$('matches').querySelector('button')?.click();};
+$('query').onkeydown=e=>{
+  if(e.key!=='Enter')return;
+  const btn=$('matches').querySelector('button');
+  if(btn)btn.click();else askAssistant($('query').value.trim());
+};
 $('close').onclick=()=>modal.close();
 modal.onclose=()=>{if(modal.open || location.hash==='#preguntas' || location.hash.startsWith('#faq-'))return; if(location.hash!=='#inicio')location.hash='inicio';};
 window.addEventListener('hashchange',route);
