@@ -17,6 +17,32 @@
   color: var(--ink); background: white;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+textarea { width:100%; padding:12px; border:1px solid #939fa8; border-radius:8px; font:inherit; color:inherit; resize:vertical; }
+button:disabled { opacity:.65; cursor:default; }
+.demo-note { border-left:4px solid var(--aqua); padding:12px 16px; background:var(--pale); margin:0 0 24px; font-size:14px; }
+#pending, #staff { margin-bottom:32px; }
+.metrics, .facts, .filters { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:20px 0; }
+.metrics article { padding:20px; border:1px solid var(--line); border-radius:14px; background:var(--pale); }
+.metrics strong { display:block; font-size:42px; font-weight:300; }
+.metrics span { display:block; font-size:14px; }
+.case-card { width:100%; display:flex; justify-content:space-between; align-items:center; gap:16px; text-align:left; border:1px solid var(--line); background:white; padding:18px; margin-bottom:10px; border-radius:12px; }
+.case-card:hover { background:var(--pale); }
+.case-card b, .case-card span span { display:block; margin-top:5px; }
+.badge { display:inline-block; background:#e1f1f3; padding:5px 10px; border-radius:20px; font-size:13px; flex-shrink:0; }
+.facts, .filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.facts { padding:16px; background:var(--pale); border-radius:10px; }
+.answer { font-size:18px; }
+.source, .feedback { border-top:1px solid var(--line); margin-top:24px; padding-top:16px; }
+.document-preview { background:#fafcfc; border:1px solid var(--line); border-top:5px solid #24415e; padding:22px; margin:20px 0; }
+.document-preview small { color:#704334; }
+.timeline { padding-left:22px; border-left:2px solid var(--aqua); list-style:none; }
+.timeline li { margin:18px 0; }
+.timeline time { font-size:12px; color:var(--slate); }
+.timeline p { white-space:pre-wrap; overflow-wrap:anywhere; }
+#detail { overflow-wrap:anywhere; }
+dialog { width:min(700px,94%) !important; }
+@media(max-width:540px) { .metrics,.facts,.filters { grid-template-columns:1fr; } .case-card { align-items:flex-start; flex-direction:column; } }
 body { margin: 0; }
 header, .hero, main, footer { width: min(1160px, 92%); margin-inline: auto; }
 .cover {
