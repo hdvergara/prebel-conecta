@@ -12,10 +12,18 @@ param(
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$python = "$PSScriptRoot\..\.venv\Scripts\python.exe"
+$python = "$PSScriptRoot\.venv\Scripts\python.exe"
 if (-not (Test-Path $python)) {
-    Write-Host "No se encontró el entorno virtual en ..\.venv."
-    Write-Host "Créalo desde la raíz del proyecto con: .\iniciar.ps1 (en c:\PyProje\PyBot)"
+    # Compatibilidad con un .venv compartido en la carpeta padre (como en esta
+    # máquina de desarrollo); cualquier otro clon del repo no tendrá esa carpeta.
+    $python = "$PSScriptRoot\..\.venv\Scripts\python.exe"
+}
+if (-not (Test-Path $python)) {
+    Write-Host "No se encontró el entorno virtual (.venv) en prebel-conecta\ ni en su carpeta padre."
+    Write-Host "Créalo desde prebel-conecta\ con:"
+    Write-Host "  python -m venv .venv"
+    Write-Host "  .\.venv\Scripts\Activate.ps1"
+    Write-Host "  pip install -r requirements.txt"
     exit 1
 }
 
