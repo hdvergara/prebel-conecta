@@ -1,0 +1,41 @@
+{
+  "fallback": "No tengo una respuesta segura para eso. Escribe a rrhh@tuempresa.com y una persona del equipo te ayuda.",
+  "faq": [
+    {
+      "preguntas": ["¿Cómo solicito vacaciones?", "Quiero tomar mis vacaciones", "¿Cuál es el proceso para pedir días de descanso?"],
+      "respuesta": "Envía la solicitud a tu jefe directo con al menos [X] días de anticipación y regístrala en [sistema]. RRHH la confirma por correo.",
+      "ruta": "vacaciones",
+      "area": "gh"
+    },
+    {
+      "preguntas": ["¿Cómo pido un certificado laboral?", "Necesito una constancia de trabajo", "¿Dónde saco mi certificado de empleo?"],
+      "respuesta": "Solicítalo en [portal o correo] indicando a quién va dirigido y si incluye salario. Se entrega en [X] días hábiles.",
+      "ruta": "certificado",
+      "area": "contratacion"
+    },
+    {
+      "preguntas": ["¿Qué hago si estoy incapacitado?", "Me enfermé y no puedo ir a trabajar", "¿Cómo reporto una incapacidad médica?"],
+      "respuesta": "Avisa a tu jefe de inmediato y envía el documento de la incapacidad a RRHH en [plazo]. RRHH gestiona el trámite con la EPS.",
+      "ruta": null,
+      "area": "gh"
+    },
+    {
+      "preguntas": ["¿Cuándo pagan la nómina?", "¿Qué día me consignan el sueldo?", "Fecha de pago de salario"],
+      "respuesta": "La nómina se paga los [días]. El desprendible queda disponible en [portal].",
+      "ruta": "nomina",
+      "area": "nomina"
+    },
+    {
+      "preguntas": ["¿Cómo actualizo mis datos personales?", "Cambié de dirección o de cuenta bancaria", "Necesito modificar mi información en el sistema"],
+      "respuesta": "Actualiza tus datos en [portal] o envía el formato [nombre] a RRHH con los soportes. Los cambios de cuenta bancaria requieren certificación del banco.",
+      "ruta": null,
+      "area": "nomina"
+    },
+    {
+      "preguntas": ["¿Hay vacantes internas?", "Quiero postularme a otro cargo en la empresa", "¿Cómo aplico a una convocatoria interna?"],
+      "respuesta": "Las vacantes internas se publican en [canal]. Postúlate con tu hoja de vida actualizada y avisa a tu jefe directo.",
+      "ruta": null,
+      "area": "contratacion"
+    }
+  ]
+}
