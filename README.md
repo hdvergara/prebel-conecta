@@ -15,7 +15,8 @@ que responde preguntas frecuentes con un modelo de lenguaje preentrenado (`model
 
 ## Setup
 
-Desde la raíz del proyecto (`c:\PyProje\PyBot`):
+Desde `prebel-conecta/` (esta carpeta es un repositorio Git independiente, así
+que estos comandos son todo lo que hace falta tras clonarlo en cualquier máquina):
 
 ```powershell
 python -m venv .venv
