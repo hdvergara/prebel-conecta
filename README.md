@@ -20,7 +20,7 @@ Desde la raíz del proyecto (`c:\PyProje\PyBot`):
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 La primera vez que corras la API, `sentence-transformers` y el modelo de sentimiento
