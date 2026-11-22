@@ -49,12 +49,52 @@ def test_match_unrelated_text_falls_back(make_bot):
     When match() is called.
     Then confianza stays below THRESHOLD and the generic fallback is returned,
     with ruta/area both null so the frontend renders no dangling action link."""
+    import rrhh_bot
+
     bot = make_bot()
     result = bot.match("un texto que no tiene relacion alguna con las preguntas")
-    assert result["confianza"] < 0.55
+    assert result["confianza"] < rrhh_bot.THRESHOLD
     assert result["respuesta"] == "Fallback de prueba."
     assert result["ruta"] is None
     assert result["area"] is None
+
+
+def test_near_miss_below_threshold_escalates_to_rrhh(make_bot):
+    """Given a best score of 0.60, which is what the real model assigns to an
+    off-FAQ question such as 'no me han pagado horas extras'.
+    When match() is called.
+    Then it does not answer with the nearest FAQ entry: it returns the
+    fallback so the UI tells the person to contact RRHH."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot()
+    scores = torch.tensor([[0.60, 0.40, 0.20]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("no me han pagado horas extras")
+    assert result["confianza"] == 0.60
+    assert result["respuesta"] == bot.fallback
+    assert result["ruta"] is None
+    assert result["area"] is None
+
+
+def test_paraphrase_at_or_above_threshold_still_matches(make_bot):
+    """Given a best score of 0.72, in the range of a real FAQ paraphrase
+    such as 'cuando pagan la nomina'.
+    When match() is called.
+    Then the matched entry is returned instead of the fallback."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot()
+    scores = torch.tensor([[0.72, 0.40, 0.20]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("cuando pagan la nomina")
+    assert result["confianza"] == 0.72
+    assert result["respuesta"] == "Respuesta uno"
+    assert result["ruta"] == "ruta-uno"
 
 
 def test_reply_is_just_the_matched_text(make_bot):

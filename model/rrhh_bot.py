@@ -16,7 +16,9 @@ BASE = Path(__file__).parent
 FAQ_PATH = BASE / "faq_rrhh.json"
 MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"  # preentrenado, soporta español
 SENTIMENT_MODEL = "nlptown/bert-base-multilingual-uncased-sentiment"  # preentrenado, salida de 1 a 5 estrellas
-THRESHOLD = 0.55  # similitud mínima; por debajo se escala a una persona de RRHH
+# 0.65, no 0.55: una pregunta fuera del FAQ (p. ej. "horas extras") puede
+# parecerse ~0.60 a nómina y antes se respondía con esa entrada.
+THRESHOLD = 0.65  # similitud mínima; por debajo se escala a una persona de RRHH
 
 
 class RRHHBot:

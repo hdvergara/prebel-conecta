@@ -22,3 +22,5 @@ prebel-conecta/specs/
 # OS cruft
 .DS_Store
 Thumbs.db
+
+.venv/
