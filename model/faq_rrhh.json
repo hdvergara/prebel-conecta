@@ -23,7 +23,7 @@
       "area": "nomina"
     },
     {
-      "preguntas": ["¿Cuándo pagan la nómina?", "¿Qué día me consignan el sueldo?", "Fecha de pago de salario"],
+      "preguntas": ["¿En qué fecha me consignan la nómina cada mes?", "¿Qué día me consignan el sueldo?", "Fecha de pago de salario"],
       "respuesta": "La nómina se paga los [días]. El desprendible queda disponible en [portal].",
       "ruta": "nomina",
       "area": "nomina"
@@ -41,13 +41,13 @@
       "area": "contratacion"
     },
     {
-      "preguntas": ["¿Cómo incluyo a un familiar en mi EPS?", "Quiero afiliar a mi esposo a la EPS", "¿Cómo agrego un beneficiario a mi EPS?"],
+      "preguntas": ["¿Cómo incluyo a un familiar en mi EPS?", "Quiero afiliar a mi esposo a la EPS", "¿Cómo agrego un familiar como beneficiario de mi EPS?"],
       "respuesta": "Puedes incluir a tu cónyuge o compañero permanente, hijos menores de 25 años que dependan económicamente de ti, o tus padres si no tienes cónyuge ni hijos a cargo. Hazlo desde el portal de tu EPS con tu usuario y clave, o escribe a [correo] si necesitas ayuda.",
       "ruta": "eps-inclusion",
       "area": "nomina"
     },
     {
-      "preguntas": ["¿Cómo me traslado de EPS?", "Quiero cambiar de EPS", "¿Puedo cambiarme de EPS cuando quiera?"],
+      "preguntas": ["¿Cómo cambio de entidad de EPS?", "Quiero cambiar de EPS", "¿Puedo cambiarme de EPS cuando quiera?"],
       "respuesta": "Los traslados de EPS solo se pueden hacer en los primeros [X] días hábiles de cada mes, y debes llevar mínimo [X] cotizando en tu EPS actual. Si tienes beneficiarios en tratamiento médico, revisa que no se vea afectado antes de trasladarte.",
       "ruta": "eps-traslado",
       "area": "nomina"
@@ -77,7 +77,7 @@
       "area": "bienestar"
     },
     {
-      "preguntas": ["¿Cuánta prima tengo acumulada?", "¿Cuándo pagan la prima?", "¿Cómo se calcula mi prima?"],
+      "preguntas": ["¿Cuánta prima tengo acumulada?", "¿En qué mes del semestre cae el pago de la prima?", "¿Cómo se calcula mi prima?"],
       "respuesta": "La prima de servicios se acumula día a día durante cada semestre y se paga en [fechas]. Puedes consultar tus días acumulados del semestre actual en tu perfil.",
       "guia": "La prima de servicios se acumula día a día durante cada semestre y se paga en [fechas].",
       "ruta": "prima",

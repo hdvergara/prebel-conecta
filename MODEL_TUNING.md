@@ -185,18 +185,63 @@ Confirma lo ya dicho: el filtro reduce el riesgo de corrupción obvia, no lo
 elimina. Sigue haciendo falta revisar cada sugerencia antes de añadirla a
 `faq_rrhh.json` -- con más cuidado que con un motor de chat.
 
-### Hallazgo aparte, no relacionado con el parafraseador
+### Hallazgo aparte, no relacionado con el parafraseador: superposición entre temas
 
-Esa misma corrida recalibró el umbral contra el `faq_rrhh.json` actual (47
-frases, creció desde las 45 de antes por las frases de saldo de vacaciones
-añadidas esta sesión) y reportó superposición entre temas: peor similitud
-dentro de un mismo tema 0.279, peor similitud entre temas distintos 0.902,
-umbral sugerido 0.59 (por debajo del `THRESHOLD` actual de 0.65). Es un
-hallazgo real de "correr el entrenamiento de nuevo", pero **no se tocó**
-`THRESHOLD` ni se investigó cuáles temas se superponen -- eso es una
-decisión de quien revise el resultado (ver `CONSTITUTION.md` y la sección
-"Qué hace `entrenar.py`" de `MODEL_TRAINING.md`), no algo para resolver sin
-que se pida.
+Esa misma corrida recalibró el umbral contra el `faq_rrhh.json` de entonces
+(47 frases) y reportó superposición entre temas: peor similitud dentro de un
+mismo tema 0.279, peor similitud entre temas distintos 0.902, umbral
+sugerido 0.59 (por debajo del `THRESHOLD` actual de 0.65). Investigado
+después (a pedido): de 1029 pares de frases de temas distintos, solo 3
+superaban el `THRESHOLD` actual, concentrados en dos pares de temas, no un
+problema generalizado.
+
+- **Nómina ↔ prima (0.902):** `"¿Cuándo pagan la nómina?"` y `"¿Cuándo pagan
+  la prima?"` -- mismo molde de pregunta, solo cambia el sustantivo.
+- **EPS inclusión ↔ EPS traslado (0.668):** `"¿Cómo agrego un beneficiario a
+  mi EPS?"` y `"¿Cómo me traslado de EPS?"` -- acciones relacionadas pero
+  distintas, superposición más leve.
+
+**Por qué no se tocó `THRESHOLD`:** el umbral solo decide si una coincidencia
+es lo bastante segura para confiar en ella; no distingue entre dos temas que
+compiten con puntajes altos. Si "nómina" y "prima" compiten a 0.902, ningún
+valor razonable de `THRESHOLD` evita que gane el equivocado -- bajarlo a
+0.59 no habría arreglado la confusión, solo habría hecho que coincidencias
+más débiles (pero correctas) en otros temas también se dieran por buenas.
+Esto es un problema de **contenido** (dos preguntas demasiado parecidas),
+no de **calibración**.
+
+**Lo que sí se hizo:** reformular las frases involucradas para reducir el
+parecido textual, no por cosmética sino apuntando a lo que sí distingue cada
+tema (nómina se paga mensual, prima es semestral):
+
+| Tema | Antes | Después |
+|---|---|---|
+| `nomina` | `¿Cuándo pagan la nómina?` | `¿En qué fecha me consignan la nómina cada mes?` |
+| `prima` | `¿Cuándo pagan la prima?` | `¿En qué mes del semestre cae el pago de la prima?` |
+| `eps-inclusion` | `¿Cómo agrego un beneficiario a mi EPS?` | `¿Cómo agrego un familiar como beneficiario de mi EPS?` |
+| `eps-traslado` | `¿Cómo me traslado de EPS?` | `¿Cómo cambio de entidad de EPS?` |
+
+Resultado, verificado empíricamente (no solo supuesto) tras cada cambio:
+EPS inclusión/traslado bajó de 0.668 a 0.623 -- ya no supera `THRESHOLD`.
+Nómina/prima bajó de 0.902 a 0.725 en dos rondas de reformulación, con
+rendimientos decrecientes (0.902 → 0.734 → 0.725) -- se detuvo ahí en vez
+de seguir adivinando reformulaciones. Pares que superan `THRESHOLD`: de 3 a
+1.
+
+**Por qué queda un residual:** "¿cuándo me pagan X?" es, para el modelo de
+embeddings, un mismo *tipo* de pregunta sin importar qué sea X -- el
+parecido no es un defecto de redacción, es que la pregunta genuinamente
+tiene la misma forma en los dos temas. Más reformulación no lo va a bajar
+mucho más. Mitigación real: cada tema tiene 3 frases registradas, y
+`rrhh_bot.py` compara contra las tres y toma la mejor -- el riesgo solo se
+materializa si la pregunta real de alguien se parece más a esta frase
+puntual que a las otras 5 frases relevantes, lo cual acota el problema
+aunque no lo elimina. Se documenta como una limitación aceptada, no una
+pendiente.
+
+Verificado después del cambio: pytest 48/48, Node 10/10, Playwright 20/21
+(la misma falla preexistente y no relacionada de siempre). `THRESHOLD` en
+`rrhh_bot.py` sigue en 0.65, sin tocar.
 
 ## Reproducir esta prueba
 
