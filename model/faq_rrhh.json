@@ -15,9 +15,9 @@
     },
     {
       "preguntas": ["¿Qué hago si estoy incapacitado?", "Me enfermé y no puedo ir a trabajar", "¿Cómo reporto una incapacidad médica?"],
-      "respuesta": "Avisa a tu jefe de inmediato y envía el documento de la incapacidad a RRHH en [plazo]. RRHH gestiona el trámite con la EPS.",
-      "ruta": null,
-      "area": "gh"
+      "respuesta": "Avisa a tu jefe de inmediato. El canal para reportarla depende de tu tipo de nómina (administrativa, operativa o impulso y mercadeo) — consulta cuál te corresponde. Tienes [plazo] para reportarla y [plazo] para entregar el soporte, o la empresa puede no reconocerla.",
+      "ruta": "incapacidad-reporte",
+      "area": "nomina"
     },
     {
       "preguntas": ["¿Cuándo pagan la nómina?", "¿Qué día me consignan el sueldo?", "Fecha de pago de salario"],
@@ -36,6 +36,60 @@
       "respuesta": "Las vacantes internas se publican en [canal]. Postúlate con tu hoja de vida actualizada y avisa a tu jefe directo.",
       "ruta": null,
       "area": "contratacion"
+    },
+    {
+      "preguntas": ["¿Cómo incluyo a un familiar en mi EPS?", "Quiero afiliar a mi esposo a la EPS", "¿Cómo agrego un beneficiario a mi EPS?"],
+      "respuesta": "Puedes incluir a tu cónyuge o compañero permanente, hijos menores de 25 años que dependan económicamente de ti, o tus padres si no tienes cónyuge ni hijos a cargo. Hazlo desde el portal de tu EPS con tu usuario y clave, o escribe a [correo] si necesitas ayuda.",
+      "ruta": "eps-inclusion",
+      "area": "nomina"
+    },
+    {
+      "preguntas": ["¿Cómo me traslado de EPS?", "Quiero cambiar de EPS", "¿Puedo cambiarme de EPS cuando quiera?"],
+      "respuesta": "Los traslados de EPS solo se pueden hacer en los primeros [X] días hábiles de cada mes, y debes llevar mínimo [X] cotizando en tu EPS actual. Si tienes beneficiarios en tratamiento médico, revisa que no se vea afectado antes de trasladarte.",
+      "ruta": "eps-traslado",
+      "area": "nomina"
+    },
+    {
+      "preguntas": ["¿Cómo pido un crédito educativo?", "Necesito un préstamo para estudiar", "¿Hay crédito para comprar un computador para estudiar?"],
+      "respuesta": "Cubre estudios técnicos, tecnológicos o profesionales, o la compra de un computador para estudiar. Es sin intereses, a [plazo], hasta por [monto]. Debes tener mínimo [X] de antigüedad y un endeudamiento inferior al [X]% de tu ingreso.",
+      "ruta": "credito-educacion",
+      "area": "bienestar"
+    },
+    {
+      "preguntas": ["¿Hay crédito para gastos veterinarios?", "Mi mascota necesita una cirugía, ¿la empresa ayuda?", "¿Cómo pido un crédito por calamidad de mi mascota?"],
+      "respuesta": "Cubre cirugías, hospitalización, exámenes, medicamentos o gastos fúnebres de tu perro o gato. Es sin intereses, hasta por [monto]. Presenta el formulario de crédito y una cotización o relación de gastos; tu mascota debe estar registrada en [sistema].",
+      "ruta": "credito-mascotas",
+      "area": "bienestar"
+    },
+    {
+      "preguntas": ["¿Hay crédito para gastos médicos?", "Necesito plata para una cirugía mía o de mi familia", "¿Cómo pido un crédito de salud?"],
+      "respuesta": "Apoya gastos médicos complejos (exámenes, medicamentos, cirugías, lentes) tuyos o de tu cónyuge, hijos o padres, hasta por [monto] y sin intereses. No aplica para procedimientos estéticos.",
+      "ruta": "credito-salud",
+      "area": "bienestar"
+    },
+    {
+      "preguntas": ["¿Hay crédito de vivienda?", "¿Cómo pido un crédito para reformar mi casa?", "¿Hay un crédito para pagar el impuesto predial?"],
+      "respuesta": "Incluye compra de vivienda o lote, reformas, calamidades habitacionales, legalización de inmuebles y pago de impuesto predial. El monto, plazo y tasa varían según el trámite; indícanos cuál te interesa.",
+      "ruta": "credito-vivienda",
+      "area": "bienestar"
+    },
+    {
+      "preguntas": ["¿Cuánta prima tengo acumulada?", "¿Cuándo pagan la prima?", "¿Cómo se calcula mi prima?"],
+      "respuesta": "La prima de servicios se acumula día a día durante cada semestre y se paga en [fechas]. Puedes consultar tus días acumulados del semestre actual en tu perfil.",
+      "ruta": "prima",
+      "area": "nomina"
+    },
+    {
+      "preguntas": ["¿Cómo retiro mis cesantías?", "Quiero usar mis cesantías para comprar vivienda", "¿Para qué puedo pedir mis cesantías?"],
+      "respuesta": "Puedes retirarlas para compra o reforma de vivienda, pago de impuesto predial, pago de crédito hipotecario, gastos notariales de escrituración, o estudio. Cada motivo pide documentos distintos; indica cuál te interesa al enviar tu solicitud.",
+      "ruta": "cesantias",
+      "area": "nomina"
+    },
+    {
+      "preguntas": ["¿Cómo me traslado a Colpensiones?", "Quiero cambiarme de fondo de pensiones", "¿Qué necesito para trasladarme a Colpensiones?"],
+      "respuesta": "Los traslados se hacen en los primeros [X] días hábiles del mes y necesitas mínimo [X] afiliado a tu fondo actual. Antes de decidir, debes recibir asesoría tanto de tu fondo privado como de Colpensiones.",
+      "ruta": "pension-traslado",
+      "area": "nomina"
     }
   ]
 }

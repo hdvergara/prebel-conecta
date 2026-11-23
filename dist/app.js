@@ -47,7 +47,14 @@ for (const recurso of recursos.filter(r => r.contenido)) {
   const titulos = {dotacion:'¿Cómo pido el cambio de mis guantes o gafas?', ergonomia:'¿Cómo solicito una revisión de mi puesto de oficina?'};
   if (titulos[recurso.id]) preguntas.push({id:'faq-'+recurso.id, ruta:recurso.id, titulo:titulos[recurso.id], respuesta:recurso.contenido, enlace:recurso.titulo});
 }
-const enlacesModelo = {vacaciones:'Planear vacaciones', nomina:'Abrir Nómina', certificado:'Generar certificado'};
+const enlacesModelo = {
+  vacaciones:'Planear vacaciones', nomina:'Abrir Nómina', certificado:'Generar certificado',
+  'eps-inclusion':'Solicitar inclusión', 'eps-traslado':'Solicitar traslado',
+  'credito-educacion':'Solicitar crédito', 'credito-mascotas':'Solicitar crédito',
+  'credito-salud':'Solicitar crédito', 'credito-vivienda':'Solicitar crédito',
+  prima:'Ver mi prima', 'incapacidad-reporte':'Reportar incapacidad',
+  cesantias:'Solicitar retiro', 'pension-traslado':'Solicitar traslado',
+};
 faqModel.faq.forEach((item,i) => {
   preguntas.push({id:'faq-modelo-'+i, ruta:item.ruta, titulo:item.preguntas[0], respuesta:item.respuesta, enlace:item.ruta && enlacesModelo[item.ruta], area:item.area, palabras:item.preguntas.join(' ')});
 });
@@ -200,6 +207,60 @@ function certificate(){
     show('Certificado generado','<p>'+body+'</p><button id="download" class="primary">Descargar certificado (.txt)</button>');$('download').onclick=()=>download('certificado-demo.txt',body);
   };
 }
+const opts = values => values.map(v=>'<option>'+v+'</option>').join('');
+const tramites = [
+  {ruta:'eps-inclusion', titulo:'Inclusión de beneficiario a EPS', area:'nomina', campos:[
+    {id:'parentesco', etiqueta:'Parentesco del beneficiario', tipo:'select', opciones:['Cónyuge o compañero permanente','Hijo(a)','Padre/Madre']},
+    {id:'nombre_beneficiario', etiqueta:'Nombre completo del beneficiario', tipo:'text'},
+  ]},
+  {ruta:'eps-traslado', titulo:'Traslado de EPS', area:'nomina', campos:[
+    {id:'eps_actual', etiqueta:'EPS actual', tipo:'text'},
+    {id:'eps_nueva', etiqueta:'EPS a la que te trasladas', tipo:'text'},
+  ]},
+  {ruta:'credito-educacion', titulo:'Crédito de educación o compra de computador', area:'bienestar', campos:[
+    {id:'destino', etiqueta:'Destino del crédito', tipo:'select', opciones:['Estudios técnicos, tecnológicos o profesionales','Compra de computador']},
+    {id:'monto', etiqueta:'Monto solicitado (COP)', tipo:'number'},
+  ]},
+  {ruta:'credito-mascotas', titulo:'Crédito de calamidad doméstica de mascotas', area:'bienestar', campos:[
+    {id:'mascota', etiqueta:'Nombre de la mascota', tipo:'text'},
+    {id:'motivo', etiqueta:'Motivo', tipo:'select', opciones:['Cirugía','Hospitalización','Exámenes','Medicamentos','Gastos fúnebres']},
+  ]},
+  {ruta:'credito-salud', titulo:'Crédito para casos especiales de salud', area:'bienestar', campos:[
+    {id:'beneficiario', etiqueta:'¿Para quién es?', tipo:'select', opciones:['Para mí','Cónyuge o compañero permanente','Hijo(a)','Padre/Madre']},
+    {id:'descripcion', etiqueta:'Describe brevemente la situación', tipo:'textarea'},
+  ]},
+  {ruta:'credito-vivienda', titulo:'Crédito de vivienda', area:'bienestar', campos:[
+    {id:'tipo', etiqueta:'Tipo de trámite', tipo:'select', opciones:['Adquisición de vivienda o lote','Reforma de vivienda','Calamidad habitacional','Legalización de inmueble','Pago de impuesto predial']},
+  ]},
+  {ruta:'incapacidad-reporte', titulo:'Reporte de incapacidad médica', area:'nomina', campos:[
+    {id:'fecha_inicio', etiqueta:'Fecha de inicio', tipo:'date'},
+    {id:'dias', etiqueta:'Días de incapacidad', tipo:'number'},
+    {id:'entidad', etiqueta:'Entidad que la expide', tipo:'select', opciones:['EPS','ARL','IPS autorizada']},
+  ]},
+  {ruta:'cesantias', titulo:'Retiro de cesantías', area:'nomina', campos:[
+    {id:'motivo', etiqueta:'Motivo del retiro', tipo:'select', opciones:['Compra de vivienda','Reforma de vivienda','Pago de impuesto predial','Pago de crédito hipotecario','Gastos notariales','Estudio']},
+  ]},
+  {ruta:'pension-traslado', titulo:'Traslado de fondo de pensiones a Colpensiones', area:'nomina', campos:[
+    {id:'fondo_actual', etiqueta:'Fondo de pensiones actual', tipo:'text'},
+  ]},
+];
+function campoHtml(c){
+  if(c.tipo==='select') return '<label for="t-'+c.id+'">'+c.etiqueta+'</label><select id="t-'+c.id+'">'+opts(c.opciones)+'</select>';
+  if(c.tipo==='textarea') return '<label for="t-'+c.id+'">'+c.etiqueta+'</label><textarea id="t-'+c.id+'" rows="3" required></textarea>';
+  return '<label for="t-'+c.id+'">'+c.etiqueta+'</label><input id="t-'+c.id+'" type="'+c.tipo+'" required>';
+}
+function tramiteForm(cfg){
+  show(cfg.titulo,'<p class="muted">'+ownerLabel(cfg.area)+'</p><form id="tramite-form">'+cfg.campos.map(campoHtml).join('')+'<button class="primary">Enviar solicitud</button></form>');
+  $('tramite-form').onsubmit=e=>{
+    e.preventDefault();
+    const detalle=Object.fromEntries(cfg.campos.map(c=>[c.id,$('t-'+c.id).value.trim()]));
+    requests.unshift({id:token(),kind:cfg.titulo,status:'Pendiente',detalle});save();
+    show('Solicitud registrada','<p>Tu solicitud de "'+cfg.titulo+'" quedó pendiente de revisión por el equipo de '+ownerLabel(cfg.area)+'.</p>'+action('solicitudes','Ver mis solicitudes'));
+  };
+}
+function primaView(){
+  show('Prima de servicios','<p class="status">'+persona.dias_prima+' días acumulados en el semestre actual</p><p>La prima se acumula día a día durante cada semestre y se paga en junio y diciembre. El equipo de Nómina resuelve dudas adicionales.</p>');
+}
 function historyView(){
   show('Mis solicitudes',requests.length?'':'<p>Aún no tienes solicitudes. Empieza eligiendo tus fechas de descanso.</p>'+action('vacaciones','Solicitar vacaciones'));
   for(const r of requests){
@@ -214,7 +275,12 @@ function historyView(){
   }
 }
 function route(){
-  const pages={vacaciones:vacation,prediccion:forecast,nomina:payroll,solicitudes:historyView,certificado:certificate,saldo:()=>show('Mi saldo de vacaciones','<p class="status">'+available()+' días hábiles disponibles</p><p>Saldo inicial de la demo: '+persona.saldo+' días. Las solicitudes pendientes reservan días hasta que las canceles.</p>'+action('prediccion','Proyectar saldo'))};
+  const pages={
+    vacaciones:vacation,prediccion:forecast,nomina:payroll,solicitudes:historyView,certificado:certificate,
+    saldo:()=>show('Mi saldo de vacaciones','<p class="status">'+available()+' días hábiles disponibles</p><p>Saldo inicial de la demo: '+persona.saldo+' días. Las solicitudes pendientes reservan días hasta que las canceles.</p>'+action('prediccion','Proyectar saldo')),
+    prima:primaView,
+    ...Object.fromEntries(tramites.map(cfg=>[cfg.ruta,()=>tramiteForm(cfg)])),
+  };
   const id = location.hash.slice(1);
   if (id.startsWith('faq-') && preguntas.some(p => id === p.id)) {
     const item = $(id);

@@ -1,0 +1,73 @@
+{
+  "_nota": "Datos 100% ficticios para demo y pruebas. Telefonos y correos son placeholders no resolubles (+57 300 555 01XX, dominio .test, reservado por IANA solo para pruebas). La estructura de campos refleja lo descrito en los documentos reales de RRHH (tipos de documento CC/CE/PPT, tipos de nomina Administrativa/Operativa/Impulso y mercadeo, incapacidades, prima de servicios), pero ningun valor de este archivo es real. Ver prebel-conecta/CONSTITUTION.md (R1, R4).",
+  "empleados": [
+    {
+      "id": "valentina",
+      "tipo_documento": "CC",
+      "numero_documento": "1000000001",
+      "primer_nombre": "Valentina",
+      "apellido": "Ruiz",
+      "telefono": "+57 300 555 0101",
+      "correo": "valentina.ruiz@prebel.test",
+      "cargo": "Analista administrativa",
+      "area": "admin",
+      "salario_actual": 3000000,
+      "fecha_ingreso": "2024-01-08",
+      "dias_vacaciones_acumulados": 12,
+      "dias_incapacidad_reportados": 0,
+      "dias_prima_acumulados": 45,
+      "tipo_nomina": "Administrativa"
+    },
+    {
+      "id": "mateo",
+      "tipo_documento": "CC",
+      "numero_documento": "1000000002",
+      "primer_nombre": "Mateo",
+      "apellido": "Ríos",
+      "telefono": "+57 300 555 0102",
+      "correo": "mateo.rios@prebel.test",
+      "cargo": "Operario de empaque",
+      "area": "produccion",
+      "salario_actual": 2200000,
+      "fecha_ingreso": "2025-03-03",
+      "dias_vacaciones_acumulados": 8,
+      "dias_incapacidad_reportados": 3,
+      "dias_prima_acumulados": 30,
+      "tipo_nomina": "Operativa"
+    },
+    {
+      "id": "camila",
+      "tipo_documento": "PPT",
+      "numero_documento": "1000000003",
+      "primer_nombre": "Camila",
+      "apellido": "Torres",
+      "telefono": "+57 300 555 0103",
+      "correo": "camila.torres@prebel.test",
+      "cargo": "Impulsadora comercial",
+      "area": "impulso",
+      "salario_actual": 1800000,
+      "fecha_ingreso": "2025-06-02",
+      "dias_vacaciones_acumulados": 6,
+      "dias_incapacidad_reportados": 0,
+      "dias_prima_acumulados": 20,
+      "tipo_nomina": "Impulso y mercadeo"
+    },
+    {
+      "id": "andres",
+      "tipo_documento": "CE",
+      "numero_documento": "1000000004",
+      "primer_nombre": "Andrés",
+      "apellido": "Castro",
+      "telefono": "+57 300 555 0104",
+      "correo": "andres.castro@prebel.test",
+      "cargo": "Técnico de mantenimiento",
+      "area": "produccion",
+      "salario_actual": 2600000,
+      "fecha_ingreso": "2023-09-15",
+      "dias_vacaciones_acumulados": 15,
+      "dias_incapacidad_reportados": 1,
+      "dias_prima_acumulados": 60,
+      "tipo_nomina": "Operativa"
+    }
+  ]
+}

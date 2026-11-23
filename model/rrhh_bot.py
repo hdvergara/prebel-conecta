@@ -9,11 +9,13 @@ Uso (PowerShell):
 import json
 from pathlib import Path
 
+import torch
 from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline
 
 BASE = Path(__file__).parent
 FAQ_PATH = BASE / "faq_rrhh.json"
+EMB_CACHE = BASE / "faq_embeddings.pt"  # generado por entrenar.py; opcional
 MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"  # preentrenado, soporta español
 SENTIMENT_MODEL = "nlptown/bert-base-multilingual-uncased-sentiment"  # preentrenado, salida de 1 a 5 estrellas
 # 0.65, no 0.55: una pregunta fuera del FAQ (p. ej. "horas extras") puede
@@ -35,7 +37,30 @@ class RRHHBot:
             for q in item["preguntas"]:
                 preguntas.append(q)
                 self.owner.append(i)
-        self.emb = self.model.encode(preguntas, convert_to_tensor=True)
+        self.emb = self._cargar_cache(preguntas)
+        if self.emb is None:
+            self.emb = self.model.encode(preguntas, convert_to_tensor=True)
+
+    def _cargar_cache(self, preguntas):
+        """Usa los embeddings de entrenar.py si existen, siguen vigentes para
+        las frases actuales de faq_rrhh.json, Y coinciden en dimensión con lo
+        que el modelo actual produce (si alguien cambia MODEL_NAME, o en
+        pruebas donde el modelo está simulado, un caché con otra dimensión no
+        sirve). Si cualquiera de los dos no se cumple, devuelve None y
+        __init__ calcula los embeddings de nuevo -- el caché es solo una
+        optimización, nunca una dependencia."""
+        if not EMB_CACHE.exists():
+            return None
+        try:
+            cache = torch.load(EMB_CACHE, weights_only=False)
+        except Exception:
+            return None
+        if cache.get("frases") != preguntas:
+            return None
+        embeddings = cache["embeddings"]
+        if embeddings.shape[-1] != self.model.encode(preguntas[0]).shape[-1]:
+            return None
+        return embeddings
 
     def sentiment(self, text: str) -> dict:
         """Sentimiento del mensaje, a partir de las 1-5 estrellas del modelo preentrenado."""

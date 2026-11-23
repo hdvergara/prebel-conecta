@@ -10,13 +10,20 @@ pide escribir a RRHH cuando la similitud no alcanza.
 
 ## Qué hace el portal
 
-Datos ficticios, guardados en el navegador (`localStorage`). Hay dos perfiles:
+Datos ficticios, guardados en el navegador (`localStorage`). Los perfiles salen de
+`model/empleados_mock.json` (también ficticio — ver R1/R4 en `CONSTITUTION.md`):
 
-- **Valentina Ruiz**, analista administrativa. Ve el recurso de ergonomía en oficina.
-- **Mateo Ríos**, operario de empaque. Ve la reposición de protección personal.
+- **Valentina Ruiz**, analista administrativa (nómina administrativa, CC). Ve el
+  recurso de ergonomía en oficina.
+- **Mateo Ríos**, operario de empaque (nómina operativa, CC). Ve la reposición de
+  protección personal.
+- **Camila Torres**, impulsadora comercial (nómina de impulso y mercadeo, PPT).
+- **Andrés Castro**, técnico de mantenimiento (nómina operativa, CE).
 
-Cada perfil tiene su saldo de vacaciones, su nómina de ejemplo y sus solicitudes.
-Cambiar el perfil recarga la página.
+Entre los tres cubren los tres tipos de documento (CC/CE/PPT) y los tres tipos de
+nómina (administrativa/operativa/impulso y mercadeo) que distinguen varios trámites
+reales de RRHH. Cada perfil tiene su saldo de vacaciones, su prima acumulada, su
+nómina de ejemplo y sus solicitudes. Cambiar el perfil recarga la página.
 
 Desde **Mi espacio** se puede:
 
@@ -28,15 +35,21 @@ Desde **Mi espacio** se puede:
 - Ver un comprobante de los tres últimos períodos y descargarlo como `.txt`.
 - Generar un certificado laboral con salario o sin salario, y descargarlo.
 - Revisar el historial en **Mis solicitudes**.
+- Abrir trámites con Nómina o con Bienestar y RSE: inclusión y traslado de EPS,
+  los cuatro tipos de crédito de bienestar (educación/cómputo, mascotas, salud,
+  vivienda), consulta de prima, reporte de incapacidad, retiro de cesantías y
+  traslado de pensión a Colpensiones. Cada uno abre un formulario mínimo y, al
+  enviarlo, queda pendiente en **Mis solicitudes**; la confirmación siempre
+  nombra el equipo responsable (p. ej. "Bienestar y RSE"), nunca a una persona
+  real — ver R1 en `CONSTITUTION.md`.
 - Abrir **Preguntas frecuentes**. El listado mezcla las respuestas del portal con
-  las de `model/faq_rrhh.json` (vacaciones, certificado, incapacidad, nómina,
-  datos personales y vacantes internas). Los textos con `[X]`, `[sistema]` o
-  `[portal]` son marcadores a propósito.
+  las de `model/faq_rrhh.json` (15 temas: vacaciones, certificado, incapacidad,
+  nómina, datos personales, vacantes internas, EPS, créditos, prima y cesantías).
+  Los textos con `[X]`, `[sistema]` o `[portal]` son marcadores a propósito.
 
 Los trámites se abren en un cuadro de diálogo. La respuesta del modelo no: queda
 en la sección **Resultado del modelo**, debajo del buscador. Si la coincidencia
-tiene una ruta (`vacaciones`, `nomina` o `certificado`), esa sección muestra un
-botón que sí abre el diálogo del trámite.
+tiene una ruta, esa sección muestra un botón que sí abre el diálogo del trámite.
 
 ## Cómo se responde una pregunta
 
@@ -86,16 +99,47 @@ varias formas de preguntarlo, una respuesta, y a veces una ruta y un área.
 La primera vez, los dos modelos se descargan de Hugging Face (~1 GB) y quedan en
 caché. Las pruebas automáticas no los cargan: usan sustitutos.
 
+Ese umbral de 0,65 y los embeddings del FAQ se recalibran con
+`model/entrenar.py` — qué configuración usa hoy, cómo volver a calibrarlo, y
+cómo generar frases nuevas del FAQ con cualquier motor de IA (Ollama, OpenAI,
+Claude o Gemini) está en [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
+
 ## Estructura
 
 - `dist/` — sitio estático (HTML, CSS y JS). No tiene paso de compilación.
-- `model/` — `rrhh_bot.py`, `rrhh_api.py` (Flask en `127.0.0.1:5000`) y `faq_rrhh.json`.
-- `catalogo.py` — escribe `dist/catalogo.js` y `dist/faq.js` desde los datos
-  ficticios y desde `model/faq_rrhh.json`.
+- `model/` — `rrhh_bot.py`, `rrhh_api.py` (Flask en `127.0.0.1:5000`), `faq_rrhh.json`
+  (contenido del FAQ), `empleados_mock.json` (los 4 perfiles ficticios, única
+  fuente de los datos de persona — `catalogo.py` solo los lee y exporta) y
+  `entrenar.py` (cachea embeddings y recalibra el umbral de similitud — ver
+  [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
+- `catalogo.py` — escribe `dist/catalogo.js` y `dist/faq.js` desde
+  `model/empleados_mock.json` y `model/faq_rrhh.json`.
 - `iniciar-conecta.ps1` — levanta la API y el sitio con un solo comando.
+- `tests/` — unit tests de Python (pytest) y de JS (`node:test`); `e2e/` — e2e
+  con Playwright. Ver la sección **Tests** más abajo.
+- `.specs/` (local, no versionado) — documentos reales de RRHH de Prebel, usados
+  solo como referencia al redactar contenido ficticio. Nunca se lee en tiempo de
+  ejecución ni desde las pruebas — ver R1 en `CONSTITUTION.md`.
 - `.github/workflows/pages.yml` — publica solo `dist/` en GitHub Pages en cada
   push a `main`. Esa URL no incluye el modelo: el navegador de quien la abre
   sigue buscando la API en su propio `127.0.0.1`.
+
+## Requisitos de desarrollo
+
+| Herramienta | Para qué | Notas |
+|---|---|---|
+| **Python 3.10+** con `pip` y `venv` | API (`model/`), `catalogo.py`, `entrenar.py`, unit tests de Python | Probado con 3.15. |
+| **Node.js 18+** con `npm` y `npx` | Unit tests de JS (`node --test`, nativo) y E2E con Playwright | No hace falta para correr el sitio ni la API. |
+| **PowerShell** (Windows) | `iniciar-conecta.ps1` | Incluido en Windows; también corre en PowerShell 7+ multiplataforma. |
+| **Git** | Clonar y versionar | `prebel-conecta/` es su propio repositorio, independiente de la carpeta que lo contiene. |
+| Navegador | Abrir la demo | Playwright instala su propio Chromium para los e2e (`npx playwright install`); no usa el navegador del sistema. |
+
+No hace falta Docker, build tools de C/C++, ni GPU. La primera vez que corras la
+API sí se descargan ~1 GB de pesos de modelo desde Hugging Face (ver más abajo).
+
+Ninguna de estas herramientas hace falta para lo de arriba: Ollama (local) u
+OpenAI/Claude/Gemini (con su clave de API) son **solo** para `entrenar.py
+--augmentar`, que es opcional — ver [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
 
 ## Setup
 
@@ -105,7 +149,20 @@ Desde `prebel-conecta/` (esta carpeta es un repositorio Git independiente):
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
+
+python model\entrenar.py
 ```
+
+Esto instala todo lo necesario para correr la API, `catalogo.py` y los unit tests
+de Python. Node.js solo hace falta si vas a correr los unit tests de JS o los e2e
+(ver **Tests**) — no tiene instalación aparte, se usa el Node.js del sistema.
+
+Ese último `python model\entrenar.py` es opcional pero recomendado la primera
+vez: descarga y cachea los dos modelos preentrenados (~1 GB) y deja listo el
+caché de embeddings del FAQ, para que el primer `.\iniciar-conecta.ps1`
+o `python model\rrhh_api.py` ya no tenga que esperar esa descarga. Si lo
+saltas, la API igual funciona — descarga los modelos ella misma en su propio
+primer arranque. Detalle completo en [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
 
 ## Run
 
@@ -134,7 +191,7 @@ python -m http.server 8080 --directory dist   # http://127.0.0.1:8080
 
 ## Regenerar los datos de la demo
 
-Si cambias `model/faq_rrhh.json` o los datos del catálogo en `catalogo.py`:
+Si cambias `model/faq_rrhh.json` o `model/empleados_mock.json`:
 
 ```powershell
 python catalogo.py

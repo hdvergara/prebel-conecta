@@ -8,6 +8,7 @@ __pycache__/
 
 # runtime/log artifacts
 backend.log
+model/faq_embeddings.pt
 
 # e2e (prebel-conecta/e2e/)
 e2e/node_modules/
@@ -23,4 +24,8 @@ prebel-conecta/specs/
 .DS_Store
 Thumbs.db
 
+# Python virtual environment
 .venv/
+
+# Specs
+.specs/
