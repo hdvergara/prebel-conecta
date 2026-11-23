@@ -10,7 +10,10 @@ module.exports = defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: "list",
+  // "list" keeps the terminal readable during a run; "html" writes the
+  // interactive pass/fail dashboard (with traces/screenshots per test) to
+  // playwright-report/ -- view it with `npx playwright show-report`.
+  reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:4173",
     trace: "retain-on-failure",
