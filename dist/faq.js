@@ -34,8 +34,8 @@ const faqModel = {
         "¿Cuántos días de incapacidad he tomado?",
         "¿Cuántas licencias médicas he tomado?"
       ],
-      "respuesta": "Avisa a tu jefe de inmediato. El canal para reportarla depende de tu tipo de nómina (administrativa, operativa o impulso y mercadeo) — consulta cuál te corresponde. Tienes [plazo] para reportarla y [plazo] para entregar el soporte, o la empresa puede no reconocerla.",
-      "guia": "Avisa a tu jefe de inmediato. El canal para reportarla depende de tu tipo de nómina (administrativa, operativa o impulso y mercadeo) — consulta cuál te corresponde. Tienes [plazo] para reportarla y [plazo] para entregar el soporte, o la empresa puede no reconocerla.",
+      "respuesta": "No llevamos un acumulado visible de tus incapacidades en el portal todavía. Para reportar una nueva, avisa a tu jefe de inmediato: el canal depende de tu tipo de nómina (administrativa, operativa o impulso y mercadeo) — consulta cuál te corresponde. Tienes [plazo] para reportarla y [plazo] para entregar el soporte, o la empresa puede no reconocerla.",
+      "guia": "Avisa a tu jefe de inmediato: el canal depende de tu tipo de nómina (administrativa, operativa o impulso y mercadeo) — consulta cuál te corresponde. Tienes [plazo] para reportarla y [plazo] para entregar el soporte, o la empresa puede no reconocerla.",
       "ruta": "incapacidad-reporte",
       "area": "nomina"
     },
