@@ -102,7 +102,10 @@ caché. Las pruebas automáticas no los cargan: usan sustitutos.
 Ese umbral de 0,65 y los embeddings del FAQ se recalibran con
 `model/entrenar.py` — qué configuración usa hoy, cómo volver a calibrarlo, y
 cómo generar frases nuevas del FAQ con cualquier motor de IA (Ollama, OpenAI,
-Claude o Gemini) está en [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
+Claude o Gemini) está en [`MODEL_TRAINING.md`](MODEL_TRAINING.md). Si en vez
+de un motor de chat te preguntas por un modelo de paráfrasis local más chico,
+la exploración (y por qué no se adoptó tal cual) está en
+[`MODEL_TUNING.md`](MODEL_TUNING.md).
 
 ## Canal de WhatsApp (opcional, solo para pruebas locales)
 

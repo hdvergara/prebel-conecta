@@ -162,3 +162,12 @@ cd e2e && npx playwright test
 Los unit tests de Python **no** cargan los modelos reales (usan sustitutos
 deterministas, ver `tests/fakes.py`), así que no se ven afectados por correr
 `entrenar.py` ni por el contenido de `model/faq_embeddings.pt`.
+
+## Variancia de frases: ¿aportaría un modelo de paráfrasis local?
+
+Exploración puntual (no implementada) de si un modelo de paráfrasis en
+español pequeño y local, además de los 4 motores de chat de arriba, serviría
+para `--augmentar`. Resultado: dos candidatos probados, con problemas de
+calidad reales (uno corrompe vocabulario de dominio, el otro cambia la
+persona gramatical de la pregunta) -- ver el detalle completo, los
+resultados exactos y la recomendación en [`MODEL_TUNING.md`](MODEL_TUNING.md).
