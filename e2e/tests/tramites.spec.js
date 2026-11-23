@@ -45,8 +45,7 @@ test.describe("Trámites con Nómina y Bienestar", () => {
   });
 
   test("prima view is read-only and shows the current profile's accumulated days", async ({ page }) => {
-    // Given: Valentina's mock record has 45 días de prima acumulados
-    // (model/empleados_mock.json), consumed via catalogo.js's dias_prima.
+    // Given: Valentina's mock record has 45 días de prima acumulados.
     // When: the visitor opens #prima.
     // Then: it shows that number, with no form to submit (it's informational,
     // unlike the other trámites -- prima isn't something you request).

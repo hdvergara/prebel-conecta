@@ -283,7 +283,7 @@ Cada corrida deja un dashboard HTML en `e2e/playwright-report/` (resultado de
 cada prueba, con sus trazas y capturas si falla). Para abrirlo:
 
 ```powershell
-npx playwright show-report
+npx playwright show-report e2e/playwright-report
 ```
 
 No se versiona (está en `.gitignore`): se regenera en cada corrida.

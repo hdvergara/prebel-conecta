@@ -8,8 +8,7 @@ const { test, expect } = require("@playwright/test");
 test.describe("Preguntas frecuentes (modelo)", () => {
   test("a model FAQ entry without a feature route shows no action link", async ({ page }) => {
     // Given: the 'datos personales' entry (faq-modelo-4) has ruta: null in
-    // model/faq_rrhh.json (unlike 'incapacidad', which now routes to its own
-    // report form and so is excluded from this case).
+    // model/faq_rrhh.json.
     // When: the visitor navigates directly to #faq-modelo-4.
     // Then: that <details> opens and shows an owner label, but no <a> link
     // (nothing to route to -- R2 in CONSTITUTION.md: no dangling actions).
