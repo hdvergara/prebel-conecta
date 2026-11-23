@@ -57,6 +57,7 @@ EMPLEADOS = json.loads((Path(__file__).resolve().parent / "empleados_mock.json")
 DATOS_BASICOS_POR_RUTA = {
     "vacaciones": ("dias_vacaciones_acumulados", "días hábiles de vacaciones acumulados"),
     "prima": ("dias_prima_acumulados", "días de prima acumulados este semestre"),
+    "incapacidad-reporte": ("dias_incapacidad_reportados", "días de incapacidad reportados"),
 }
 
 # Identificación por número de documento, declarada en el propio chat (como

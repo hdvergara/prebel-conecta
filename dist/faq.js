@@ -30,9 +30,12 @@ const faqModel = {
       "preguntas": [
         "¿Qué hago si estoy incapacitado?",
         "Me enfermé y no puedo ir a trabajar",
-        "¿Cómo reporto una incapacidad médica?"
+        "¿Cómo reporto una incapacidad médica?",
+        "¿Cuántos días de incapacidad he tomado?",
+        "¿Cuántas licencias médicas he tomado?"
       ],
       "respuesta": "Avisa a tu jefe de inmediato. El canal para reportarla depende de tu tipo de nómina (administrativa, operativa o impulso y mercadeo) — consulta cuál te corresponde. Tienes [plazo] para reportarla y [plazo] para entregar el soporte, o la empresa puede no reconocerla.",
+      "guia": "Avisa a tu jefe de inmediato. El canal para reportarla depende de tu tipo de nómina (administrativa, operativa o impulso y mercadeo) — consulta cuál te corresponde. Tienes [plazo] para reportarla y [plazo] para entregar el soporte, o la empresa puede no reconocerla.",
       "ruta": "incapacidad-reporte",
       "area": "nomina"
     },
