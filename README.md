@@ -153,6 +153,15 @@ apuntar a un entorno de pruebas real de Meta más adelante, solo hay que
 cambiar esos valores (y el `WA_GRAPH_URL` a `https://graph.facebook.com`); el
 código de `whatsapp_service.py` no cambia.
 
+## Canal de WhatsApp con n8n (opcional, servidor de pruebas)
+
+`n8n/` es otro canal de WhatsApp, independiente de `model/`: tres flujos de
+n8n que responden con IA local (Ollama), usando los documentos oficiales de
+Prebel como única fuente (RAG). Hay un "cerebro" compartido y dos "puertas":
+el emulador de WhatsApp Cloud API y Evolution API (WhatsApp real). No lee
+`model/faq_rrhh.json` ni cambia nada de `dist/` o `model/`. Qué hace, cómo se
+importa y qué datos quedan fuera de git está en [`n8n/README.md`](n8n/README.md).
+
 ## Estructura
 
 - `dist/` — sitio estático (HTML, CSS y JS). No tiene paso de compilación.
@@ -164,6 +173,8 @@ código de `whatsapp_service.py` no cambia.
   fuente de los datos de persona — `catalogo.py` solo los lee y exporta) y
   `entrenar.py` (cachea embeddings y recalibra el umbral de similitud — ver
   [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
+- `n8n/` — canal de WhatsApp en n8n (flujos exportados + scripts de la base de
+  conocimiento). Ver [`n8n/README.md`](n8n/README.md).
 - `catalogo.py` — escribe `dist/catalogo.js` y `dist/faq.js` desde
   `model/empleados_mock.json` y `model/faq_rrhh.json`.
 - `iniciar-conecta.ps1` — levanta la API y el sitio con un solo comando.
