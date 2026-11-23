@@ -76,16 +76,21 @@ style preference.
   repo root, so that path never matched). If `.gitignore` is ever edited,
   re-verify with `git check-ignore -v .env` that it's still excluded.
 - **R7 — WhatsApp sender identification is basic, not authentication.**
-  `whatsapp_service.py`'s `buscar_persona_por_telefono()` matches the
-  sender's WhatsApp number against `empleados_mock.json`'s fictitious
-  `telefono` field to return a personalized basic value (e.g. vacation
-  balance) — anyone texting from that number sees that data, with no further
-  proof of identity. This is deliberate and demo-appropriate (same spirit as
-  caller ID), but it is not a trust boundary: never extend it to anything
-  sensitive (salary, documents, changing data) without real verification
-  (MFA or equivalent) first, and never describe it to a user as secure. If
-  that verification is added later, it belongs in its own explicit step —
-  don't silently upgrade this lookup's trust level in place.
+  `whatsapp_service.py` has two identification paths, both equally informal:
+  `buscar_persona_por_telefono()` matches the sender's WhatsApp number
+  against `empleados_mock.json`'s fictitious `telefono` field (same spirit as
+  caller ID), and `buscar_persona_por_documento()` accepts whatever
+  `numero_documento` the sender types in chat (`IDENTIFICADOS_POR_DOCUMENTO`,
+  an in-memory, per-process cache — lost on restart, not shared across
+  processes) — self-reported, with no corroboration at all, weaker than the
+  phone match. Either way, anyone claiming that number or typing that
+  document number sees that data, with no further proof of identity. This is
+  deliberate and demo-appropriate, but neither is a trust boundary: never
+  extend either to anything sensitive (salary, documents, changing data)
+  without real verification (MFA or equivalent) first, and never describe
+  either to a user as secure. If that verification is added later, it
+  belongs in its own explicit step — don't silently upgrade either lookup's
+  trust level in place.
 
 ## 3. Harness
 

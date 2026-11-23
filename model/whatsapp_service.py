@@ -52,16 +52,31 @@ bot = RRHHBot()
 EMPLEADOS = json.loads((Path(__file__).resolve().parent / "empleados_mock.json").read_text(encoding="utf-8"))["empleados"]
 
 # Qué dato básico puede devolver cada ruta, una vez identificado el remitente
-# por su número de WhatsApp -- ver CONSTITUTION.md R7: esto es identificación
-# básica (por número), no autenticación. MFA/confianza queda para más adelante.
+# -- ver CONSTITUTION.md R7: esto es identificación básica, no autenticación.
+# MFA/confianza queda para más adelante.
 DATOS_BASICOS_POR_RUTA = {
     "vacaciones": ("dias_vacaciones_acumulados", "días hábiles de vacaciones acumulados"),
     "prima": ("dias_prima_acumulados", "días de prima acumulados este semestre"),
 }
 
+# Identificación por número de documento, declarada en el propio chat (como
+# el "Para identificarte..." del portal web) -- en memoria, por proceso: se
+# pierde al reiniciar el servicio, y es tan básica como la del teléfono (R7).
+# Solo existe para que el número de prueba por defecto del emulador (que no
+# es ninguno de los 4 teléfonos ficticios) también pueda identificarse.
+IDENTIFICADOS_POR_DOCUMENTO: dict = {}
+
 
 def _solo_digitos(texto: str) -> str:
     return "".join(c for c in (texto or "") if c.isdigit())
+
+
+def parece_numero_documento(texto: str) -> bool:
+    """Un mensaje que es solo dígitos (6 a 12) no tiene otro uso posible en
+    esta conversación -- se trata como un intento de identificarse, no como
+    una pregunta de RRHH."""
+    digitos = _solo_digitos(texto)
+    return bool(digitos) and digitos == (texto or "").strip() and 6 <= len(digitos) <= 12
 
 
 def buscar_persona_por_telefono(numero_whatsapp: str) -> dict | None:
@@ -79,24 +94,41 @@ def buscar_persona_por_telefono(numero_whatsapp: str) -> dict | None:
     return None
 
 
+def buscar_persona_por_documento(numero_documento: str) -> dict | None:
+    """Identificación básica declarada por la propia persona -- aún menos
+    verificada que el teléfono (cualquiera puede escribir cualquier número),
+    pero es la única forma de identificarse desde un número de WhatsApp que
+    no sea uno de los 4 teléfonos ficticios (p. ej. el contacto de prueba
+    por defecto del emulador). Ver CONSTITUTION.md R7."""
+    objetivo = (numero_documento or "").strip()
+    for persona in EMPLEADOS:
+        if persona["numero_documento"] == objetivo:
+            return persona
+    return None
+
+
 def personalizar(match: dict, persona: dict | None) -> str:
-    """Si el remitente quedó identificado por teléfono y la ruta tiene un
-    dato básico mapeado, responde con el valor real primero y la guía
-    accionable (match["guia"], sin la frase que remite a "revisa tu perfil")
-    después -- el dato y el siguiente paso, nada más. Sin persona o sin dato
-    para esa ruta, se usa tal cual la respuesta genérica del FAQ (la que sí
-    incluye esa remisión, para quien no pudo identificarse)."""
+    """Si el remitente quedó identificado (por teléfono o por documento) y la
+    ruta tiene un dato básico mapeado, responde con el valor real primero
+    (resaltado en negrilla, formato nativo de WhatsApp) y la guía accionable
+    (match["guia"], sin la frase que remite a "revisa tu perfil") después --
+    el dato y el siguiente paso, nada más. Sin persona, invita a
+    identificarse por documento en vez de repetir siempre el mismo texto
+    genérico. Sin dato para esa ruta, se usa tal cual la respuesta del FAQ."""
     campo = DATOS_BASICOS_POR_RUTA.get(match["ruta"])
-    if not campo or not persona:
+    if not campo:
         return match["respuesta"]
+    if not persona:
+        return (f'{match["respuesta"]} Si quieres que te dé el dato exacto aquí mismo, '
+                "escribe tu número de documento registrado en Prebel.")
     atributo, etiqueta = campo
     valor = persona.get(atributo)
     if valor is None:
         return match["respuesta"]
-    partes = [f"{persona['primer_nombre']}, tienes {valor} {etiqueta}."]
+    partes = [f"{persona['primer_nombre']}, tienes *{valor}* {etiqueta}."]
     if match.get("guia"):
         partes.append(match["guia"])
-    partes.append("(Identificación básica por tu número de WhatsApp, sin verificación adicional todavía.)")
+    partes.append("(Identificación básica, sin verificación adicional todavía.)")
     return " ".join(partes)
 
 
@@ -141,8 +173,21 @@ def procesar_mensaje(msg: dict) -> None:
         responder_texto(remitente, "Por ahora solo puedo leer mensajes de texto. Escribe tu pregunta de RRHH.")
         return
     texto = msg["text"]["body"]
+
+    # Un mensaje que es solo un número de documento es un intento de
+    # identificarse (ver personalizar()), no una pregunta -- no pasa por
+    # RRHHBot.
+    if parece_numero_documento(texto):
+        persona_doc = buscar_persona_por_documento(_solo_digitos(texto))
+        if persona_doc:
+            IDENTIFICADOS_POR_DOCUMENTO[remitente] = persona_doc
+            responder_texto(remitente, f"¡Listo, {persona_doc['primer_nombre']}! Ya puedo darte tus datos. ¿En qué te ayudo?")
+        else:
+            responder_texto(remitente, "No encontré ese número de documento registrado en la demo. Intenta de nuevo o escribe tu pregunta.")
+        return
+
     match = bot.match(texto)
-    persona = buscar_persona_por_telefono(remitente)
+    persona = buscar_persona_por_telefono(remitente) or IDENTIFICADOS_POR_DOCUMENTO.get(remitente)
     responder_texto(remitente, personalizar(match, persona))
 
 

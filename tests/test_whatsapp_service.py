@@ -174,6 +174,106 @@ def test_buscar_persona_por_telefono_returns_none_for_an_unknown_number(servicio
     assert servicio.buscar_persona_por_telefono("573001112233") is None
 
 
+def test_parece_numero_documento_accepts_plain_digit_strings_in_range(servicio):
+    """Given a message that is only digits, 6 to 12 of them.
+    When parece_numero_documento() is called.
+    Then it's treated as a self-identification attempt."""
+    assert servicio.parece_numero_documento("1000000001") is True
+
+
+@pytest.mark.parametrize("texto", ["hola", "1000000001 porfa", "123", "1234567890123", ""])
+def test_parece_numero_documento_rejects_anything_else(servicio, texto):
+    """Given a message that isn't a bare 6-12 digit string (a real question,
+    digits with extra words, too short, too long, or empty).
+    When parece_numero_documento() is called.
+    Then it's NOT treated as a self-identification attempt -- a real
+    question must still reach RRHHBot, not get swallowed as a bad document
+    number."""
+    assert servicio.parece_numero_documento(texto) is False
+
+
+def test_buscar_persona_por_documento_matches_a_known_mock_employee(servicio):
+    """Given one of the 4 fictitious numero_documento values.
+    When buscar_persona_por_documento() is called.
+    Then it returns that employee."""
+    persona = servicio.buscar_persona_por_documento("1000000003")
+    assert persona["primer_nombre"] == "Camila"
+
+
+def test_buscar_persona_por_documento_returns_none_for_an_unknown_number(servicio):
+    assert servicio.buscar_persona_por_documento("9999999999") is None
+
+
+def test_identifying_by_documento_is_remembered_for_the_rest_of_the_session(client, servicio):
+    """Given a message from an unrecognized phone number (like the
+    emulator's own default test contact) that is just a known
+    numero_documento.
+    When /webhook handles it, and then a real question arrives from the same
+    sender.
+    Then the first message gets a confirmation (not routed through
+    RRHHBot), and the second gets personalized data -- the self-reported
+    identification is remembered in-memory for that sender for the rest of
+    this run (CONSTITUTION.md R7: still not authentication)."""
+    remitente = "573001112233"  # no coincide con ningún teléfono ficticio
+
+    doc_body = {"entry": [{"changes": [{"value": {"messages": [
+        {"id": "wamid.8", "from": remitente, "type": "text", "text": {"body": "1000000003"}},
+    ]}}]}]}
+    raw_doc = json.dumps(doc_body).encode("utf-8")
+    fake_response = MagicMock(ok=True, content=b"{}")
+    fake_response.json.return_value = {}
+    with patch("whatsapp_service.requests.post", return_value=fake_response) as post, \
+         patch.object(servicio.bot, "match") as match_mock:
+        resp = client.post("/webhook", data=raw_doc, headers={
+            "Content-Type": "application/json", "X-Hub-Signature-256": _firmar(raw_doc),
+        })
+        match_mock.assert_not_called()  # un número de documento no es una pregunta
+    assert resp.status_code == 200
+    _read_call, reply_call = post.call_args_list
+    assert "Camila" in reply_call.kwargs["json"]["text"]["body"]
+
+    pregunta_body = {"entry": [{"changes": [{"value": {"messages": [
+        {"id": "wamid.9", "from": remitente, "type": "text", "text": {"body": "cuantos dias de vacaciones tengo"}},
+    ]}}]}]}
+    raw_pregunta = json.dumps(pregunta_body).encode("utf-8")
+    with patch("whatsapp_service.requests.post", return_value=fake_response) as post, \
+         patch.object(servicio.bot, "match", return_value={
+             "respuesta": "Tu saldo de vacaciones aparece en tu perfil, en Mi espacio.",
+             "ruta": "vacaciones", "area": "gh", "confianza": 1.0,
+             "sentimiento": {"etiqueta": "neutral", "estrellas": 3, "confianza": 0.5},
+             "guia": "Pide tus vacaciones con anticipación.",
+         }):
+        resp = client.post("/webhook", data=raw_pregunta, headers={
+            "Content-Type": "application/json", "X-Hub-Signature-256": _firmar(raw_pregunta),
+        })
+    assert resp.status_code == 200
+    _read_call, reply_call = post.call_args_list
+    texto = reply_call.kwargs["json"]["text"]["body"]
+    assert "*6* días hábiles de vacaciones acumulados" in texto  # Camila
+
+
+def test_identifying_by_an_unknown_documento_gives_an_error_not_a_crash(client, servicio):
+    """Given a bare digit-string message that matches no mock employee.
+    When /webhook handles it.
+    Then it answers with an error, not an invented identity, and RRHHBot is
+    never consulted for what is clearly not a question."""
+    body = {"entry": [{"changes": [{"value": {"messages": [
+        {"id": "wamid.10", "from": "573001112233", "type": "text", "text": {"body": "9999999999"}},
+    ]}}]}]}
+    raw = json.dumps(body).encode("utf-8")
+    fake_response = MagicMock(ok=True, content=b"{}")
+    fake_response.json.return_value = {}
+    with patch("whatsapp_service.requests.post", return_value=fake_response) as post, \
+         patch.object(servicio.bot, "match") as match_mock:
+        resp = client.post("/webhook", data=raw, headers={
+            "Content-Type": "application/json", "X-Hub-Signature-256": _firmar(raw),
+        })
+        match_mock.assert_not_called()
+    assert resp.status_code == 200
+    _read_call, reply_call = post.call_args_list
+    assert "No encontré" in reply_call.kwargs["json"]["text"]["body"]
+
+
 def test_personalizar_leads_with_the_real_value_then_the_guia_for_a_route_with_basic_data(servicio):
     """Given a known persona and a match whose ruta has a mapped field
     (vacaciones) and a 'guia' (the actionable step, without the generic
@@ -187,19 +287,26 @@ def test_personalizar_leads_with_the_real_value_then_the_guia_for_a_route_with_b
     match = {"respuesta": "Texto genérico con remisión a tu perfil.", "ruta": "vacaciones",
               "guia": "Pide tus vacaciones a tu jefe con anticipación."}
     resultado = servicio.personalizar(match, persona)
-    assert resultado.startswith("Valentina, tienes 12 días hábiles de vacaciones acumulados.")
+    # *12* en negrilla (formato nativo de WhatsApp) para que el dato resalte.
+    assert resultado.startswith("Valentina, tienes *12* días hábiles de vacaciones acumulados.")
     assert "Pide tus vacaciones a tu jefe con anticipación." in resultado
     assert "tu perfil" not in resultado
     assert "Identificación básica" in resultado
 
 
-def test_personalizar_leaves_response_untouched_without_a_matched_persona(servicio):
-    """Given no persona was identified (unknown sender).
+def test_personalizar_invites_self_identification_by_documento_without_a_matched_persona(servicio):
+    """Given no persona was identified (unknown sender) and a ruta that does
+    have basic data mapped.
     When personalizar() is called.
-    Then the original generic response text comes back unchanged -- no data
-    is invented for someone who can't even be basically identified."""
+    Then instead of silently repeating only the generic respuesta forever
+    (the original bug: the same canned text for every follow-up question),
+    it also invites the person to self-identify by número de documento, so a
+    WhatsApp number that isn't one of the fictitious ones can still get real
+    data on their very next message."""
     match = {"respuesta": "Texto genérico.", "ruta": "vacaciones", "guia": "Guía."}
-    assert servicio.personalizar(match, None) == "Texto genérico."
+    resultado = servicio.personalizar(match, None)
+    assert resultado.startswith("Texto genérico.")
+    assert "número de documento" in resultado
 
 
 def test_personalizar_leaves_response_untouched_for_a_route_without_basic_data(servicio):
@@ -241,16 +348,18 @@ def test_identified_sender_gets_a_personalized_basic_data_value_in_the_reply(cli
     assert resp.status_code == 200
     _read_call, reply_call = post.call_args_list
     texto = reply_call.kwargs["json"]["text"]["body"]
-    assert "12 días hábiles de vacaciones acumulados" in texto
+    assert "*12* días hábiles de vacaciones acumulados" in texto
     assert "Pide tus vacaciones a tu jefe con anticipación." in texto
     assert "tu perfil" not in texto
 
 
-def test_unidentified_sender_gets_the_plain_match_without_personalization(client, servicio):
+def test_unidentified_sender_gets_the_match_plus_a_self_identification_invite(client, servicio):
     """Given an incoming message from a phone number that matches no mock
-    employee.
+    employee, with a ruta that has basic data mapped.
     When /webhook handles it end to end.
-    Then the reply is exactly RRHHBot's own text, unmodified."""
+    Then the reply keeps RRHHBot's own text and appends an invite to
+    self-identify by número de documento -- not a repeat of the exact same
+    unhelpful text on every follow-up (the original bug report)."""
     body = {
         "entry": [{"changes": [{"value": {"messages": [
             {"id": "wamid.7", "from": "573009999999", "type": "text", "text": {"body": "cuantos dias de vacaciones tengo"}},
@@ -270,4 +379,6 @@ def test_unidentified_sender_gets_the_plain_match_without_personalization(client
         })
     assert resp.status_code == 200
     _read_call, reply_call = post.call_args_list
-    assert reply_call.kwargs["json"]["text"]["body"] == respuesta_bot
+    texto = reply_call.kwargs["json"]["text"]["body"]
+    assert texto.startswith(respuesta_bot)
+    assert "número de documento" in texto
