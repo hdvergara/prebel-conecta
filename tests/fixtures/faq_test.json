@@ -6,6 +6,7 @@
     {
       "preguntas": ["pregunta uno", "variante uno"],
       "respuesta": "Respuesta uno",
+      "guia": "Guía de prueba.",
       "ruta": "ruta-uno",
       "area": "area-uno"
     },

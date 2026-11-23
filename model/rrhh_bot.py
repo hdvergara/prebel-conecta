@@ -113,9 +113,12 @@ class RRHHBot:
                 respuesta = self.saludo
             else:
                 respuesta = self.fallback
-            return {"respuesta": respuesta, "ruta": None, "area": None, "confianza": confianza, "sentimiento": sentimiento}
+            return {"respuesta": respuesta, "ruta": None, "area": None, "confianza": confianza, "sentimiento": sentimiento, "guia": None}
         item = self.items[self.owner[best]]
-        return {"respuesta": item["respuesta"], "ruta": item.get("ruta"), "area": item.get("area"), "confianza": confianza, "sentimiento": sentimiento}
+        # "guia" es el paso accionable por su cuenta, sin la frase que remite
+        # a "revisa tu perfil" -- la usan canales que ya pueden dar el dato
+        # real (ver model/whatsapp_service.py) para no repetir ambas cosas.
+        return {"respuesta": item["respuesta"], "ruta": item.get("ruta"), "area": item.get("area"), "confianza": confianza, "sentimiento": sentimiento, "guia": item.get("guia")}
 
     def reply(self, text: str) -> str:
         return self.match(text)["respuesta"]

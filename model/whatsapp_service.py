@@ -79,18 +79,25 @@ def buscar_persona_por_telefono(numero_whatsapp: str) -> dict | None:
     return None
 
 
-def personalizar(respuesta: str, ruta: str | None, persona: dict | None) -> str:
-    """Añade el dato básico real (si la ruta lo tiene y el remitente quedó
-    identificado por teléfono) a la respuesta genérica del FAQ."""
-    campo = DATOS_BASICOS_POR_RUTA.get(ruta)
+def personalizar(match: dict, persona: dict | None) -> str:
+    """Si el remitente quedó identificado por teléfono y la ruta tiene un
+    dato básico mapeado, responde con el valor real primero y la guía
+    accionable (match["guia"], sin la frase que remite a "revisa tu perfil")
+    después -- el dato y el siguiente paso, nada más. Sin persona o sin dato
+    para esa ruta, se usa tal cual la respuesta genérica del FAQ (la que sí
+    incluye esa remisión, para quien no pudo identificarse)."""
+    campo = DATOS_BASICOS_POR_RUTA.get(match["ruta"])
     if not campo or not persona:
-        return respuesta
+        return match["respuesta"]
     atributo, etiqueta = campo
     valor = persona.get(atributo)
     if valor is None:
-        return respuesta
-    return (f"{respuesta} Según tu número de WhatsApp, {persona['primer_nombre']}: tienes {valor} {etiqueta} "
-            "(identificación básica por número, sin verificación adicional todavía).")
+        return match["respuesta"]
+    partes = [f"{persona['primer_nombre']}, tienes {valor} {etiqueta}."]
+    if match.get("guia"):
+        partes.append(match["guia"])
+    partes.append("(Identificación básica por tu número de WhatsApp, sin verificación adicional todavía.)")
+    return " ".join(partes)
 
 
 def _messages_url() -> str:
@@ -136,7 +143,7 @@ def procesar_mensaje(msg: dict) -> None:
     texto = msg["text"]["body"]
     match = bot.match(texto)
     persona = buscar_persona_por_telefono(remitente)
-    responder_texto(remitente, personalizar(match["respuesta"], match["ruta"], persona))
+    responder_texto(remitente, personalizar(match, persona))
 
 
 @app.get("/webhook")

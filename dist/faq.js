@@ -12,6 +12,7 @@ const faqModel = {
         "¿Cuál es mi saldo de vacaciones?"
       ],
       "respuesta": "Tu saldo de vacaciones aparece en tu perfil, en Mi espacio. Para solicitarlas, envía la solicitud a tu jefe directo con al menos [X] días de anticipación y regístrala en [sistema]; RRHH la confirma por correo.",
+      "guia": "Para solicitarlas, envía la solicitud a tu jefe directo con al menos [X] días de anticipación y regístrala en [sistema]; RRHH la confirma por correo.",
       "ruta": "vacaciones",
       "area": "gh"
     },
@@ -132,6 +133,7 @@ const faqModel = {
         "¿Cómo se calcula mi prima?"
       ],
       "respuesta": "La prima de servicios se acumula día a día durante cada semestre y se paga en [fechas]. Puedes consultar tus días acumulados del semestre actual en tu perfil.",
+      "guia": "La prima de servicios se acumula día a día durante cada semestre y se paga en [fechas].",
       "ruta": "prima",
       "area": "nomina"
     },

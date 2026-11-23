@@ -44,6 +44,28 @@ def test_match_exact_phrasing_returns_the_matched_entry(make_bot):
     assert result["area"] == "area-uno"
 
 
+def test_match_includes_guia_field_when_the_entry_has_one(make_bot):
+    """Given a matched entry with an optional 'guia' field -- the actionable
+    step on its own, without the referral to "revisa tu perfil" baked into
+    the full respuesta text.
+    When match() is called.
+    Then 'guia' comes through in the result, for channels (like
+    whatsapp_service.py) that can state a personalized value directly and
+    just need the next step after it, without repeating that referral."""
+    bot = make_bot()
+    result = bot.match("pregunta uno")
+    assert result["guia"] == "Guía de prueba."
+
+
+def test_match_guia_is_none_when_the_entry_has_no_guia_field(make_bot):
+    """Given a matched entry with no 'guia' field (entry 2 in the fixture).
+    When match() is called.
+    Then 'guia' is None rather than a missing key or an empty string."""
+    bot = make_bot()
+    result = bot.match("pregunta dos")
+    assert result["guia"] is None
+
+
 def test_match_unrelated_text_falls_back(make_bot):
     """Given a query that shares no text with any registered phrasing.
     When match() is called.

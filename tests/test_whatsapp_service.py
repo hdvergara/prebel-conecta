@@ -174,23 +174,32 @@ def test_buscar_persona_por_telefono_returns_none_for_an_unknown_number(servicio
     assert servicio.buscar_persona_por_telefono("573001112233") is None
 
 
-def test_personalizar_adds_the_real_value_for_a_route_with_basic_data(servicio):
-    """Given a known persona and a ruta with a mapped field (vacaciones).
+def test_personalizar_leads_with_the_real_value_then_the_guia_for_a_route_with_basic_data(servicio):
+    """Given a known persona and a match whose ruta has a mapped field
+    (vacaciones) and a 'guia' (the actionable step, without the generic
+    "revisa tu perfil" referral already baked into match['respuesta']).
     When personalizar() is called.
-    Then the real value is appended, with an explicit note that this
-    identification is basic (by number), not verified -- per R7."""
+    Then the real value leads the response, the guia follows it, the
+    original generic respuesta text is NOT reused (it would be redundant
+    once the real number is already stated), and there's an explicit note
+    that this identification is basic, not verified -- per R7."""
     persona = servicio.buscar_persona_por_telefono("573005550101")  # Valentina, 12 días
-    resultado = servicio.personalizar("Texto genérico.", "vacaciones", persona)
-    assert "12 días hábiles de vacaciones acumulados" in resultado
-    assert "identificación básica" in resultado
+    match = {"respuesta": "Texto genérico con remisión a tu perfil.", "ruta": "vacaciones",
+              "guia": "Pide tus vacaciones a tu jefe con anticipación."}
+    resultado = servicio.personalizar(match, persona)
+    assert resultado.startswith("Valentina, tienes 12 días hábiles de vacaciones acumulados.")
+    assert "Pide tus vacaciones a tu jefe con anticipación." in resultado
+    assert "tu perfil" not in resultado
+    assert "Identificación básica" in resultado
 
 
 def test_personalizar_leaves_response_untouched_without_a_matched_persona(servicio):
     """Given no persona was identified (unknown sender).
     When personalizar() is called.
-    Then the original response text comes back unchanged -- no data is
-    invented for someone who can't even be basically identified."""
-    assert servicio.personalizar("Texto genérico.", "vacaciones", None) == "Texto genérico."
+    Then the original generic response text comes back unchanged -- no data
+    is invented for someone who can't even be basically identified."""
+    match = {"respuesta": "Texto genérico.", "ruta": "vacaciones", "guia": "Guía."}
+    assert servicio.personalizar(match, None) == "Texto genérico."
 
 
 def test_personalizar_leaves_response_untouched_for_a_route_without_basic_data(servicio):
@@ -198,17 +207,19 @@ def test_personalizar_leaves_response_untouched_for_a_route_without_basic_data(s
     DATOS_BASICOS_POR_RUTA (e.g. certificado -- there's no single mock field
     that answers it).
     When personalizar() is called.
-    Then the original response text comes back unchanged."""
+    Then the original generic response text comes back unchanged."""
     persona = servicio.buscar_persona_por_telefono("573005550101")
-    assert servicio.personalizar("Texto genérico.", "certificado", persona) == "Texto genérico."
+    match = {"respuesta": "Texto genérico.", "ruta": "certificado", "guia": None}
+    assert servicio.personalizar(match, persona) == "Texto genérico."
 
 
 def test_identified_sender_gets_a_personalized_basic_data_value_in_the_reply(client, servicio):
     """Given an incoming message from a phone number that matches Valentina's
-    mock telefono, and a match whose ruta is 'vacaciones'.
+    mock telefono, and a match whose ruta is 'vacaciones' with a 'guia'.
     When /webhook handles it end to end.
-    Then the reply sent back includes her real vacation balance, appended to
-    RRHHBot's own generic answer."""
+    Then the reply sent back leads with her real vacation balance and the
+    guia, dropping the generic "revisa tu perfil" referral (now redundant --
+    the real number was just given directly)."""
     body = {
         "entry": [{"changes": [{"value": {"messages": [
             {"id": "wamid.6", "from": "573005550101", "type": "text", "text": {"body": "cuantos dias de vacaciones tengo"}},
@@ -222,6 +233,7 @@ def test_identified_sender_gets_a_personalized_basic_data_value_in_the_reply(cli
              "respuesta": "Tu saldo de vacaciones aparece en tu perfil, en Mi espacio.",
              "ruta": "vacaciones", "area": "gh", "confianza": 1.0,
              "sentimiento": {"etiqueta": "neutral", "estrellas": 3, "confianza": 0.5},
+             "guia": "Pide tus vacaciones a tu jefe con anticipación.",
          }):
         resp = client.post("/webhook", data=raw, headers={
             "Content-Type": "application/json", "X-Hub-Signature-256": _firmar(raw),
@@ -230,6 +242,8 @@ def test_identified_sender_gets_a_personalized_basic_data_value_in_the_reply(cli
     _read_call, reply_call = post.call_args_list
     texto = reply_call.kwargs["json"]["text"]["body"]
     assert "12 días hábiles de vacaciones acumulados" in texto
+    assert "Pide tus vacaciones a tu jefe con anticipación." in texto
+    assert "tu perfil" not in texto
 
 
 def test_unidentified_sender_gets_the_plain_match_without_personalization(client, servicio):
