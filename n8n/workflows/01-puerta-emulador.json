@@ -1,0 +1,747 @@
+{
+  "name": "Prebel – Puerta Emulador",
+  "nodes": [
+    {
+      "id": "g1",
+      "name": "Webhook verificación (GET)",
+      "webhookId": "5f1c2b7e-1a3d-4c55-9b6a-0e7d2f4a1b01",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "prebel-emulador",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "g2",
+      "name": "Huella del token",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "action": "hmac",
+        "binaryData": false,
+        "type": "SHA256",
+        "value": "={{ $json.query['hub.verify_token'] }}",
+        "dataPropertyName": "huella",
+        "encoding": "hex"
+      },
+      "credentials": {
+        "crypto": {
+          "id": "nekq2qwGhZ7LgOz4",
+          "name": "Emulador Prebel – firma HMAC"
+        }
+      }
+    },
+    {
+      "id": "g3",
+      "name": "¿Token correcto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.huella }}",
+              "rightValue": "bdf7ae676ada1fb542f3d5671b10fc70d92c89fecbdf8db29293e0f21985df77",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "g4",
+      "name": "Devolver challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        -100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "g5",
+      "name": "Rechazar (403)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "p1",
+      "name": "Webhook mensajes (POST)",
+      "webhookId": "5f1c2b7e-1a3d-4c55-9b6a-0e7d2f4a1b02",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prebel-emulador",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true,
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "p2",
+      "name": "Calcular firma",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        220,
+        400
+      ],
+      "parameters": {
+        "action": "hmac",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "type": "SHA256",
+        "dataPropertyName": "firmaCalculada",
+        "encoding": "hex"
+      },
+      "credentials": {
+        "crypto": {
+          "id": "nekq2qwGhZ7LgOz4",
+          "name": "Emulador Prebel – firma HMAC"
+        }
+      }
+    },
+    {
+      "id": "p3",
+      "name": "¿Firma válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.headers['x-hub-signature-256'] }}",
+              "rightValue": "={{ 'sha256=' + $json.firmaCalculada }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "p4",
+      "name": "Firma inválida",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        660,
+        520
+      ],
+      "parameters": {
+        "errorMessage": "Firma X-Hub-Signature-256 inválida: aviso descartado"
+      }
+    },
+    {
+      "id": "p5",
+      "name": "¿Es un mensaje?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c4",
+              "leftValue": "={{ $json.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "p6",
+      "name": "Quitar duplicados",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        880,
+        320
+      ],
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.body.entry[0].changes[0].value.messages[0].id }}",
+        "options": {
+          "historySize": 10000
+        }
+      }
+    },
+    {
+      "id": "p7",
+      "name": "Marcar como leído",
+      "notes": "Why HTTP: no hay nodo nativo para la API de WhatsApp apuntando al emulador; el nodo WhatsApp de n8n usa graph.facebook.com fijo. Si falla, el eco se envía igual.",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1100,
+        320
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://prebel-emulador:4010/v26.0/{{ $json.body.entry[0].changes[0].value.metadata.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', status: 'read', message_id: $json.body.entry[0].changes[0].value.messages[0].id, typing_indicator: { type: 'text' } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Ad8M7HDFqhYVHv2c",
+          "name": "Emulador Prebel – token"
+        }
+      }
+    },
+    {
+      "id": "p8",
+      "name": "Enviar respuesta",
+      "notes": "Why HTTP: no hay nodo nativo para la API de WhatsApp apuntando al emulador. Envía el texto que devolvió el cerebro.",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "position": [
+        2200,
+        320
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://prebel-emulador:4010/v26.0/{{ $('Quitar duplicados').item.json.body.entry[0].changes[0].value.metadata.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Quitar duplicados').item.json.body.entry[0].changes[0].value.messages[0].from, type: 'text', text: { body: $json.respuesta } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Ad8M7HDFqhYVHv2c",
+          "name": "Emulador Prebel – token"
+        }
+      }
+    },
+    {
+      "id": "s0",
+      "name": "Nota: qué es este flujo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -560
+      ],
+      "parameters": {
+        "width": 2260,
+        "height": 380,
+        "color": 7,
+        "content": "## Prebel – Puerta Emulador\n**Qué hace:** conecta el *teléfono falso* (emulador de WhatsApp de la hackathon) con el **cerebro** de Prebel. El empleado escribe en el emulador y recibe la respuesta de la IA basada en los documentos oficiales.\n\n**Cómo funciona (analogía):** el emulador es como un buzón. Cada vez que llega una carta, toca el timbre de n8n (el *webhook*). n8n abre la puerta, revisa el sello de la carta, se la pasa al cerebro (otro flujo: *Prebel – Cerebro (IA)*) y entrega la respuesta.\n\n**Piezas:**\n- Emulador: app de Coolify, proyecto *Prebel*. Dentro del servidor se llama `prebel-emulador:4010`. Desde el navegador: su dirección *sslip.io*, con usuario y contraseña.\n- Credenciales: *Emulador Prebel – firma HMAC* (revisa el sello) y *Emulador Prebel – token* (permiso para responder).\n- Las claves viven en `~/.secrets/prebel-emulador.env` y en Coolify. Nunca en este flujo.\n\n⏱️ Saludos: ~1 s. Preguntas: ~30–40 s (la IA local escribe unas 6 palabras por segundo)."
+      }
+    },
+    {
+      "id": "s1",
+      "name": "Nota: verificación",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -160
+      ],
+      "parameters": {
+        "width": 900,
+        "height": 340,
+        "color": 5,
+        "content": "### 1) Prueba de identidad (una sola vez)\nAntes de enviar mensajes, el emulador (igual que Meta) pregunta *\"¿este timbre es tuyo?\"* enviando una contraseña acordada (*verify token*) y un número al azar (*challenge*).\n- **Huella del token:** convierte la contraseña recibida en una huella para compararla sin guardar la contraseña en el flujo.\n- **¿Token correcto?** Si coincide, devolvemos el número (*Devolver challenge*). Si no, respondemos **403 = prohibido**."
+      }
+    },
+    {
+      "id": "s2",
+      "name": "Nota: mensajes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        220
+      ],
+      "parameters": {
+        "width": 2260,
+        "height": 440,
+        "color": 4,
+        "content": "### 2) Cada mensaje que llega\n1. **Webhook mensajes:** responde *\"recibido\"* (200) al instante. Si tardara, el emulador volvería a enviar la misma carta.\n2. **Calcular firma + ¿Firma válida?:** revisa el *sello de cera* (firma `X-Hub-Signature-256`). Si alguien falsifica un mensaje, se descarta (*Firma inválida*).\n3. **¿Es un mensaje?:** el emulador también avisa *enviado / entregado / leído* (los chulitos). Esos avisos se ignoran.\n4. **Quitar duplicados:** recuerda los IDs de mensajes ya atendidos para no responder dos veces.\n5. **Marcar como leído:** pone los chulitos azules y el *escribiendo…*. Si falla, el flujo sigue igual.\n6. **¿Necesita aviso?** Si no es un saludo, **Enviar aviso \"buscando\"** responde al instante *\"Estoy buscando la información… ⏳\"* para que el empleado sepa que lo atendieron mientras la IA redacta (~30 s).\n7. **Preguntar al cerebro:** le pasa el texto (o el título del botón tocado) al flujo *Prebel – Cerebro (IA)* y espera la respuesta.\n8. **Enviar respuesta:** manda al teléfono falso lo que contestó el cerebro."
+      }
+    },
+    {
+      "id": "p9",
+      "name": "Preguntar al cerebro",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1980,
+        320
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "FMh0nT4mwTi0x72z",
+          "cachedResultName": "Prebel – Cerebro (IA)"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pregunta": "={{ (m => m.type === 'text' ? m.text.body : (m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? 'menú'))($('Quitar duplicados').item.json.body.entry[0].changes[0].value.messages[0]) }}",
+            "canal": "emulador",
+            "modo": "responder"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "pregunta",
+              "displayName": "pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "canal",
+              "displayName": "canal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "modo",
+              "displayName": "modo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "p10",
+      "name": "¿Necesita aviso?",
+      "notes": "Los saludos y el menú se responden en ~1 s: no necesitan aviso. La misma lista de saludos está en el nodo '¿Es saludo o menú?' del cerebro; si cambias una, cambia la otra.",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ $json.esSaludo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "p11",
+      "name": "Enviar aviso \"buscando\"",
+      "notes": "Why HTTP: no hay nodo nativo para la API de WhatsApp apuntando al emulador. Si falla, la respuesta se envía igual.",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
+      "position": [
+        1760,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://prebel-emulador:4010/v26.0/{{ $('Quitar duplicados').item.json.body.entry[0].changes[0].value.metadata.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Quitar duplicados').item.json.body.entry[0].changes[0].value.messages[0].from, type: 'text', text: { body: 'Estoy buscando la información en los documentos de Prebel, dame unos segundos ⏳' } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Ad8M7HDFqhYVHv2c",
+          "name": "Emulador Prebel – token"
+        }
+      }
+    },
+    {
+      "id": "eb894abe-cbce-434e-b338-ca2664743e79",
+      "name": "¿Es saludo? (pregunta al cerebro)",
+      "notes": "Pregunta al cerebro si el mensaje es un saludo (la lista de saludos vive solo en el cerebro). Tarda menos de 0,1 s.",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        320
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "FMh0nT4mwTi0x72z",
+          "cachedResultName": "Prebel – Cerebro (IA)"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pregunta": "={{ (m => m.type === 'text' ? m.text.body : (m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? 'menú'))($('Quitar duplicados').item.json.body.entry[0].changes[0].value.messages[0]) }}",
+            "canal": "emulador",
+            "modo": "clasificar"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "pregunta",
+              "displayName": "pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "canal",
+              "displayName": "canal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "modo",
+              "displayName": "modo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook verificación (GET)": {
+      "main": [
+        [
+          {
+            "node": "Huella del token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Huella del token": {
+      "main": [
+        [
+          {
+            "node": "¿Token correcto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Token correcto?": {
+      "main": [
+        [
+          {
+            "node": "Devolver challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rechazar (403)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook mensajes (POST)": {
+      "main": [
+        [
+          {
+            "node": "Calcular firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular firma": {
+      "main": [
+        [
+          {
+            "node": "¿Firma válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Firma válida?": {
+      "main": [
+        [
+          {
+            "node": "¿Es un mensaje?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Firma inválida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es un mensaje?": {
+      "main": [
+        [
+          {
+            "node": "Quitar duplicados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Quitar duplicados": {
+      "main": [
+        [
+          {
+            "node": "Marcar como leído",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preguntar al cerebro": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Necesita aviso?": {
+      "main": [
+        [
+          {
+            "node": "Enviar aviso \"buscando\"",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preguntar al cerebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar aviso \"buscando\"": {
+      "main": [
+        [
+          {
+            "node": "Preguntar al cerebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar como leído": {
+      "main": [
+        [
+          {
+            "node": "¿Es saludo? (pregunta al cerebro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es saludo? (pregunta al cerebro)": {
+      "main": [
+        [
+          {
+            "node": "¿Necesita aviso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "America/Bogota",
+    "executionOrder": "v1"
+  }
+}

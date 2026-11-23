@@ -1,0 +1,622 @@
+{
+  "name": "Prebel – Cerebro (IA)",
+  "nodes": [
+    {
+      "id": "b1",
+      "name": "Recibir pregunta",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "pregunta",
+              "type": "string"
+            },
+            {
+              "name": "canal",
+              "type": "string"
+            },
+            {
+              "name": "modo",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b2",
+      "name": "¿Es saludo o menú?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "s1",
+              "leftValue": "={{ $json.esSaludo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b3",
+      "name": "Responder menú",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "respuesta",
+              "type": "string",
+              "value": "¡Hola! Soy el asistente de Gestión Humana de Prebel. Puedo ayudarte con:\n\n1. *Vinculación y Nómina* (certificados, cesantías, EPS, vacaciones, incapacidades)\n2. *Créditos y Condiciones* (educación, salud, vivienda, mascotas)\n3. *Auxilios y Beneficios* (educativos, visual, salud mental, nacimiento y más)\n\nEscríbeme tu pregunta con tus palabras.\n\nRecuerda: este asistente responde únicamente con base en los documentos cargados."
+            },
+            {
+              "id": "a2",
+              "name": "tipo",
+              "type": "string",
+              "value": "menu"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b4",
+      "name": "Embedding de la pregunta",
+      "notes": "Why HTTP: el nodo 'Embeddings Ollama' solo funciona como sub-nodo de un vector store; aquí necesitamos el vector suelto para compararlo con la Data Table. Ollama local no usa credencial.",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueErrorOutput",
+      "position": [
+        880,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama-api-wpcngxcjd6adcnm4x8aa1koi:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'embeddinggemma', input: 'task: search result | query: ' + $json.pregunta, keep_alive: '60m' }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "b5",
+      "name": "Leer fichas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        380
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "p6s4lQXndDNoJXB3"
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "b6",
+      "name": "Buscar fichas parecidas",
+      "notes": "Why Code: Summarize/Sort no calculan similitud coseno entre vectores; un solo nodo corto compara la pregunta con las 89 fichas y arma el contexto.",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        380
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Compara el vector de la pregunta con el de cada ficha (similitud coseno)\nconst q = $('Embedding de la pregunta').first().json.embeddings[0];\nconst norma = v => Math.sqrt(v.reduce((s, x) => s + x * x, 0));\nconst nq = norma(q);\nconst UMBRAL = 0.30;      // por debajo, la ficha no tiene relación con la pregunta\nconst K = 3;              // máximo de fichas que se le pasan a la IA\nconst MAX_CHARS = 2400;   // límite de texto: la IA local lee ~40 palabras por segundo\n\nconst ordenadas = $input.all().map(it => {\n  const e = JSON.parse(it.json.embedding);\n  let dot = 0;\n  for (let i = 0; i < e.length; i++) dot += e[i] * q[i];\n  return { ...it.json, puntaje: dot / (nq * norma(e)) };\n}).sort((a, b) => b.puntaje - a.puntaje);\n\nconst elegidas = [];\nlet largo = 0;\nfor (const f of ordenadas.slice(0, K)) {\n  if (f.puntaje < UMBRAL) break;\n  if (elegidas.length && largo + f.texto.length > MAX_CHARS) break;\n  elegidas.push(f);\n  largo += f.texto.length;\n}\n\nreturn [{ json: {\n  pregunta: $('Recibir pregunta').first().json.pregunta,\n  mejorPuntaje: Math.round((ordenadas[0]?.puntaje ?? 0) * 1000) / 1000,\n  fichas: elegidas.map(f => ({ id: f.ficha_id, documento: f.documento, seccion: f.seccion, puntaje: Math.round(f.puntaje * 1000) / 1000 })),\n  // fuente = secciones principales de las fichas casi tan parecidas como la mejor (margen 0,05)\n  fuente: [...new Set(elegidas.filter(f => f.puntaje >= elegidas[0].puntaje - 0.05).map(f => `${f.documento} › ${f.seccion.split(' › ')[0].replace(/ \\(parte \\d+\\)$/, '')}`))].join(' · '),\n  contexto: elegidas.map(f => `[${f.documento} › ${f.seccion}]\\n${f.texto}`).join('\\n\\n---\\n\\n'),\n} }];"
+      }
+    },
+    {
+      "id": "b7",
+      "name": "¿Hay fichas relevantes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        380
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "r1",
+              "leftValue": "={{ $json.fichas.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b8",
+      "name": "Responder no disponible",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        600
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "respuesta",
+              "type": "string",
+              "value": "Lo siento, esa información no está disponible en este momento, ya que mi conocimiento se limita únicamente a los documentos cargados.\n\n_Este chatbot de Gestión Humana funciona con inteligencia artificial y puede cometer errores. Te recomendamos validar la información o resolver cualquier duda con [Nombre], Analista de Bienestar y RSE, o [Nombre], Asistente Gestión Humana._"
+            },
+            {
+              "id": "n2",
+              "name": "tipo",
+              "type": "string",
+              "value": "no_disponible"
+            },
+            {
+              "id": "n3",
+              "name": "mejorPuntaje",
+              "type": "number",
+              "value": "={{ $json.mejorPuntaje }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b9",
+      "name": "Redactar respuesta con IA",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "onError": "continueErrorOutput",
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=CONTEXTO:\n{{ $json.contexto }}\n\nPREGUNTA DEL EMPLEADO: {{ $json.pregunta }}",
+        "hasOutputParser": false,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "Eres el asistente de Gestión Humana de Prebel y respondes por WhatsApp a empleados de la compañía. Respondes SOLO con la información del CONTEXTO que acompaña cada pregunta: son fichas copiadas de los documentos oficiales de Prebel.\n\nReglas:\n1. No inventes, no deduzcas y no completes con conocimiento externo. Copia cifras, plazos, requisitos, nombres, correos y teléfonos exactamente como aparecen en el CONTEXTO.\n2. Si el CONTEXTO no contiene la respuesta, o la pregunta es sobre otro país, otra empresa u otro tema, responde exactamente: \"Lo siento, esa información no está disponible en este momento, ya que mi conocimiento se limita únicamente a los documentos cargados.\" y nada más.\n3. Si la respuesta cambia según el tipo de nómina (administrativa, operativa, impulso y mercadeo, practicante) y el empleado no dijo la suya, muestra cada caso en una lista corta.\n4. Responde solo lo que se pregunta.\n5. Formato para WhatsApp: empieza con una frase breve y cálida (por ejemplo \"¡Claro! Esto es lo que necesitas saber:\"). Usa listas numeradas para pasos y viñetas con \"•\" para requisitos. Para resaltar usa *un asterisco a cada lado*. No uses tablas, ni títulos con #, ni dobles asteriscos, ni pongas un número y una viñeta en la misma línea. Máximo 120 palabras.\n6. Termina con: \"Si necesitas más detalles, aquí estoy para ayudarte.\"\n7. Cuando des un medio de contacto, nómbralo como aparece en el CONTEXTO: si dice WhatsApp, escribe \"escribe al WhatsApp\"; si dice correo, \"envía un correo a\". Nunca digas \"llamar\" si el CONTEXTO no habla de llamadas.\n8. No escribas la fuente ni avisos sobre inteligencia artificial: el sistema los agrega después.\nIdioma: español, tuteo, tono cálido y profesional."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b10",
+      "name": "Modelo Ollama (gemma4)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        520
+      ],
+      "parameters": {
+        "model": "gemma4:e2b",
+        "options": {
+          "think": false,
+          "temperature": 0.1,
+          "keepAlive": "60m",
+          "numCtx": 4096,
+          "numPredict": 350
+        }
+      },
+      "credentials": {
+        "ollamaApi": {
+          "id": "lavzpuOvyjnfq4Gy",
+          "name": "Ollama local (red Coolify)"
+        }
+      }
+    },
+    {
+      "id": "b11",
+      "name": "Agregar fuente y aviso",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        280
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "respuesta",
+              "type": "string",
+              "value": "={{ $json.text.includes('no está disponible en este momento') ? 'Lo siento, esa información no está disponible en este momento, ya que mi conocimiento se limita únicamente a los documentos cargados.' : $json.text.trim() + '\\n\\n_Fuente: ' + $('Buscar fichas parecidas').item.json.fuente + '_' }}\n\n_Este chatbot de Gestión Humana funciona con inteligencia artificial y puede cometer errores. Te recomendamos validar la información o resolver cualquier duda con [Nombre], Analista de Bienestar y RSE, o [Nombre], Asistente Gestión Humana._"
+            },
+            {
+              "id": "f2",
+              "name": "tipo",
+              "type": "string",
+              "value": "respuesta_ia"
+            },
+            {
+              "id": "f3",
+              "name": "mejorPuntaje",
+              "type": "number",
+              "value": "={{ $('Buscar fichas parecidas').item.json.mejorPuntaje }}"
+            },
+            {
+              "id": "f4",
+              "name": "fichas",
+              "type": "array",
+              "value": "={{ $('Buscar fichas parecidas').item.json.fichas.map(f => f.id) }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b12",
+      "name": "Responder con disculpa",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        760
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "respuesta",
+              "type": "string",
+              "value": "Lo siento, en este momento no pude procesar tu pregunta. Por favor inténtalo de nuevo en unos minutos. Si es urgente, puedes comunicarte con [Nombre], Analista de Bienestar y RSE, al [teléfono de Gestión Humana]."
+            },
+            {
+              "id": "d2",
+              "name": "tipo",
+              "type": "string",
+              "value": "error"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n0",
+      "name": "Nota: qué es este flujo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -480
+      ],
+      "parameters": {
+        "width": 2260,
+        "height": 420,
+        "color": 7,
+        "content": "## Prebel – Cerebro (IA)\n**Qué hace:** recibe una pregunta de un empleado y devuelve la respuesta lista para enviar por WhatsApp, usando **solo** los documentos oficiales de Prebel. No sabe de qué puerta viene la pregunta: lo usan igual *Prebel – Puerta Emulador* y *Prebel – Puerta Evolution* (por eso la comparación entre puertas es justa).\n\n**Cómo funciona (analogía):** es como un bibliotecario. Primero busca en el fichero las 2 o 3 fichas que más se parecen a la pregunta y solo después redacta la respuesta mirando esas fichas. Si ninguna ficha se parece, dice que no tiene esa información en vez de inventar.\n\n**Piezas:**\n- Fichero: Data Table **prebel_kb** (89 fichas de 4 documentos). Se regenera con `scripts/ingesta.py` + `scripts/cargar_kb.py` del repositorio.\n- *Embeddings* (convertir texto en coordenadas para comparar significados): modelo `embeddinggemma` en el Ollama del servidor.\n- Redacción: modelo `gemma4:e2b` en el mismo Ollama (desde el 2026-11-23; antes `gemma4:e4b`, que sigue instalado y es el doble de lento). Los documentos **no salen del servidor**.\n\n⏱️ Saludo o \"no disponible\": 1–3 s. Respuesta con IA: ~20–26 s con `gemma4:e2b` (sin tarjeta gráfica, la IA escribe ~14 palabras por segundo)."
+      }
+    },
+    {
+      "id": "n1",
+      "name": "Nota: pasos",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -40
+      ],
+      "parameters": {
+        "width": 2260,
+        "height": 880,
+        "color": 4,
+        "content": "### Paso a paso\n1. **Recibir pregunta:** entrada del sub-flujo (`pregunta`, `canal` y `modo`).\n2. **Detectar saludo (lista única):** aquí vive la **única** lista de saludos del proyecto (\"hola\", \"menú\", \"ayuda\"…). Si agregas un saludo, hazlo solo en este nodo.\n3. **¿Solo clasificar?** Las puertas llaman primero con `modo = clasificar` para saber si deben enviar el aviso \"buscando\". En ese caso el cerebro responde al instante `esSaludo: sí/no` (**Devolver clasificación**) y no busca nada.\n4. **¿Es saludo o menú?** Sí → **Responder menú** al instante, sin IA.\n5. **Embedding de la pregunta:** convierte la pregunta en coordenadas (~0,4 s).\n6. **Leer fichas + Buscar fichas parecidas:** compara la pregunta con las 89 fichas y elige hasta 3 con puntaje ≥ 0,30 (máximo ~2.400 caracteres, para que la IA no tarde de más).\n7. **¿Hay fichas relevantes?** Si no → **Responder no disponible** (mensaje oficial de Prebel), sin gastar IA.\n8. **Redactar respuesta con IA:** la IA recibe las reglas de Prebel (tono, no inventar, formato WhatsApp) + las fichas + la pregunta.\n9. **Agregar fuente y aviso:** añade *Fuente: documento › sección* y el aviso de que es un asistente de IA.\n10. Si Ollama falla → **Responder con disculpa** (nunca se queda callado)."
+      }
+    },
+    {
+      "id": "7b7afa22-079d-4390-9e55-d7fa66d78e20",
+      "name": "Detectar saludo (lista única)",
+      "notes": "ÚNICA lista de saludos del proyecto. Las puertas la consultan llamando a este cerebro con modo = clasificar. Si agregas un saludo, agrégalo solo aquí.",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "es1",
+              "name": "esSaludo",
+              "type": "boolean",
+              "value": "={{ /^(hola|holi|buenas|buenos días|buenos dias|buenas tardes|buenas noches|hey|menú|menu|ayuda|inicio|empezar)[!¡.,\\s]*$/i.test(String($json.pregunta ?? '').trim()) }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "608a222d-69c8-4d41-bad4-63bd29a7f653",
+      "name": "¿Solo clasificar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "m1",
+              "leftValue": "={{ $json.modo }}",
+              "rightValue": "clasificar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7ca13706-67ef-4101-acec-ed238a3d2503",
+      "name": "Devolver clasificación",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        80
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "esSaludo",
+              "type": "boolean",
+              "value": "={{ $json.esSaludo }}"
+            },
+            {
+              "id": "c2",
+              "name": "tipo",
+              "type": "string",
+              "value": "clasificacion"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "¿Es saludo o menú?": {
+      "main": [
+        [
+          {
+            "node": "Responder menú",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Embedding de la pregunta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding de la pregunta": {
+      "main": [
+        [
+          {
+            "node": "Leer fichas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder con disculpa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer fichas": {
+      "main": [
+        [
+          {
+            "node": "Buscar fichas parecidas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar fichas parecidas": {
+      "main": [
+        [
+          {
+            "node": "¿Hay fichas relevantes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay fichas relevantes?": {
+      "main": [
+        [
+          {
+            "node": "Redactar respuesta con IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder no disponible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Ollama (gemma4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Redactar respuesta con IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar respuesta con IA": {
+      "main": [
+        [
+          {
+            "node": "Agregar fuente y aviso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder con disculpa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recibir pregunta": {
+      "main": [
+        [
+          {
+            "node": "Detectar saludo (lista única)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar saludo (lista única)": {
+      "main": [
+        [
+          {
+            "node": "¿Solo clasificar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Solo clasificar?": {
+      "main": [
+        [
+          {
+            "node": "Devolver clasificación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Es saludo o menú?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "America/Bogota",
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

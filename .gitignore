@@ -30,3 +30,9 @@ Thumbs.db
 
 # Specs
 .specs/
+
+# Canal n8n (n8n/): fichas generadas de los documentos reales, el cerebro con
+# contactos reales y la lista privada de reemplazos -- never commit (R1)
+n8n/data/
+n8n/insumos/
+*.real.*

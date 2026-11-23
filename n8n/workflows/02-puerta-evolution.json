@@ -1,0 +1,489 @@
+{
+  "name": "Prebel – Puerta Evolution",
+  "nodes": [
+    {
+      "id": "e1",
+      "name": "Webhook Evolution (POST)",
+      "webhookId": "7a3e9c10-4b2d-4f6e-8a1c-2d5e6f7a8b01",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prebel-evolution",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tCpF3cuhzKk8nrbh",
+          "name": "Evolution Prebel – sello webhook"
+        }
+      }
+    },
+    {
+      "id": "e2",
+      "name": "¿Mensaje de una persona?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "messages.upsert",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.body.data?.key?.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.body.data?.key?.remoteJid ?? '' }}",
+              "rightValue": "@s.whatsapp.net|@lid",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            },
+            {
+              "id": "c4",
+              "leftValue": "={{ $json.body.data?.key?.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e3",
+      "name": "Quitar duplicados",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.body.data.key.id }}",
+        "options": {
+          "historySize": 10000
+        }
+      }
+    },
+    {
+      "id": "e4",
+      "name": "Marcar como leído",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "onError": "continueRegularOutput",
+      "position": [
+        656,
+        0
+      ],
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "read-messages",
+        "instanceName": "={{ $json.body.instance }}",
+        "remoteJid": "={{ $json.body.data.key.remoteJid }}",
+        "messageId": "={{ $json.body.data.key.id }}"
+      },
+      "credentials": {
+        "evolutionApi": {
+          "id": "MXcqJel4rGrTYt0i",
+          "name": "Evolution Prebel (instancia prebel)"
+        }
+      }
+    },
+    {
+      "id": "e5",
+      "name": "Enviar respuesta",
+      "notes": "Envía por WhatsApp el texto que devolvió el cerebro.",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Quitar duplicados').item.json.body.instance }}",
+        "remoteJid": "={{ $('Quitar duplicados').item.json.body.data.key.remoteJid }}",
+        "messageText": "={{ $json.respuesta }}",
+        "options_message": {}
+      },
+      "credentials": {
+        "evolutionApi": {
+          "id": "MXcqJel4rGrTYt0i",
+          "name": "Evolution Prebel (instancia prebel)"
+        }
+      }
+    },
+    {
+      "id": "s0",
+      "name": "Nota: qué es este flujo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -512
+      ],
+      "parameters": {
+        "content": "## Prebel – Puerta Evolution\n**Qué hace:** conecta un **WhatsApp real** (el número de pruebas) con el **cerebro** de Prebel usando *Evolution API*. Es la puerta 2, para comparar contra el emulador.\n\n**Cómo funciona (analogía):** Evolution es como un *WhatsApp Web* que nunca se cierra. Cuando llega un mensaje, le avisa a n8n con un **sello secreto** en la cabecera `X-Prebel-Secret`. Sin ese sello, n8n responde 403 = prohibido. n8n le pasa la pregunta al cerebro (*Prebel – Cerebro (IA)*) y envía la respuesta.\n\n**Piezas:**\n- Evolution: proyecto Coolify *ASAPP*. Instancia **prebel**, separada de ASAPP.\n- Credenciales: *Evolution Prebel – sello webhook* (el sello) y *Evolution Prebel (instancia prebel)* (permiso para responder solo por esa línea).\n- Las claves viven en `~/.secrets/prebel-evolution.env`.\n\n⚠️ Es una conexión **no oficial**: Meta puede bloquear el número. Para Prebel en producción el camino es la API oficial (el emulador imita esa API).\n⏱️ Saludos: ~1 s. Preguntas: ~30–40 s.",
+        "height": 400,
+        "width": 1800,
+        "color": 7
+      }
+    },
+    {
+      "id": "s1",
+      "name": "Nota: mensajes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        -64
+      ],
+      "parameters": {
+        "content": "### Cada mensaje que llega\n1. **Webhook Evolution:** revisa el sello y responde *\"recibido\"* al instante.\n2. **¿Mensaje de una persona?** Deja pasar solo mensajes nuevos de un chat individual. Ignora los **propios** (si no, el bot se respondería a sí mismo en bucle), los de **grupos** y los *estados*.\n3. **Quitar duplicados:** no responde dos veces el mismo mensaje.\n4. **Marcar como leído:** chulitos azules. Si falla, sigue igual.\n5. **¿Necesita aviso?** Si no es un saludo, **Enviar aviso \"buscando\"** responde al instante *\"Estoy buscando la información… ⏳\"* para que el empleado sepa que lo atendieron mientras la IA redacta (~30 s).\n6. **Preguntar al cerebro:** le pasa el texto al flujo *Prebel – Cerebro (IA)* y espera la respuesta.\n7. **Enviar respuesta:** la manda por WhatsApp.",
+        "height": 340,
+        "width": 1800,
+        "color": 4
+      }
+    },
+    {
+      "id": "e6",
+      "name": "Preguntar al cerebro",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1540,
+        0
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "FMh0nT4mwTi0x72z",
+          "cachedResultName": "Prebel – Cerebro (IA)"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pregunta": "={{ $('Quitar duplicados').item.json.body.data.message?.conversation ?? $('Quitar duplicados').item.json.body.data.message?.extendedTextMessage?.text ?? 'menú' }}",
+            "canal": "evolution",
+            "modo": "responder"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "pregunta",
+              "displayName": "pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "canal",
+              "displayName": "canal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "modo",
+              "displayName": "modo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "e7",
+      "name": "¿Necesita aviso?",
+      "notes": "Los saludos y el menú se responden en ~1 s: no necesitan aviso. La misma lista de saludos está en el nodo '¿Es saludo o menú?' del cerebro; si cambias una, cambia la otra.",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ $json.esSaludo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e8",
+      "name": "Enviar aviso \"buscando\"",
+      "notes": "Si falla, la respuesta se envía igual.",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "onError": "continueRegularOutput",
+      "position": [
+        1320,
+        -140
+      ],
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-text",
+        "instanceName": "={{ $('Quitar duplicados').item.json.body.instance }}",
+        "remoteJid": "={{ $('Quitar duplicados').item.json.body.data.key.remoteJid }}",
+        "messageText": "Estoy buscando la información en los documentos de Prebel, dame unos segundos ⏳",
+        "options_message": {}
+      },
+      "credentials": {
+        "evolutionApi": {
+          "id": "MXcqJel4rGrTYt0i",
+          "name": "Evolution Prebel (instancia prebel)"
+        }
+      }
+    },
+    {
+      "id": "9c370309-a2f3-4946-b8c8-e46cc2437e00",
+      "name": "¿Es saludo? (pregunta al cerebro)",
+      "notes": "Pregunta al cerebro si el mensaje es un saludo (la lista de saludos vive solo en el cerebro). Tarda menos de 0,1 s.",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "FMh0nT4mwTi0x72z",
+          "cachedResultName": "Prebel – Cerebro (IA)"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pregunta": "={{ $('Quitar duplicados').item.json.body.data.message?.conversation ?? $('Quitar duplicados').item.json.body.data.message?.extendedTextMessage?.text ?? 'menú' }}",
+            "canal": "evolution",
+            "modo": "clasificar"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "pregunta",
+              "displayName": "pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "canal",
+              "displayName": "canal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "modo",
+              "displayName": "modo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Evolution (POST)": {
+      "main": [
+        [
+          {
+            "node": "¿Mensaje de una persona?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Mensaje de una persona?": {
+      "main": [
+        [
+          {
+            "node": "Quitar duplicados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Quitar duplicados": {
+      "main": [
+        [
+          {
+            "node": "Marcar como leído",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preguntar al cerebro": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Necesita aviso?": {
+      "main": [
+        [
+          {
+            "node": "Enviar aviso \"buscando\"",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preguntar al cerebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar aviso \"buscando\"": {
+      "main": [
+        [
+          {
+            "node": "Preguntar al cerebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar como leído": {
+      "main": [
+        [
+          {
+            "node": "¿Es saludo? (pregunta al cerebro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es saludo? (pregunta al cerebro)": {
+      "main": [
+        [
+          {
+            "node": "¿Necesita aviso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "America/Bogota",
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}
