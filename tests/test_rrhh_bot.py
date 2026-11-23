@@ -205,6 +205,49 @@ def test_high_confidence_match_wins_even_with_negative_sentiment(make_bot):
     assert result["sentimiento"]["etiqueta"] == "negativo"
 
 
+def test_keyword_overlap_without_a_close_embedding_match_asks_to_narrow(make_bot):
+    """Given a message with no close embedding similarity to any registered
+    phrasing, but that shares a significant word ("variante") with entry 1's
+    own preguntas ("variante uno").
+    When match() is called.
+    Then instead of the generic fallback or a guess, it asks the person to
+    narrow their question to one of the FAQ's own phrasings for that topic --
+    naming entry 1's first phrasing ("pregunta uno") -- rather than silently
+    answering the wrong question or giving up with the cold fallback."""
+    bot = make_bot()
+    result = bot.match("necesito la variante correcta para mi caso")
+    assert result["ruta"] is None
+    assert "pregunta uno" in result["respuesta"]
+    assert result["respuesta"] not in (bot.fallback, bot.saludo, bot.grosero)
+
+
+def test_keyword_overlap_narrowing_is_skipped_for_too_generic_a_word(make_bot):
+    """Given a message that only shares a stopworded/too-short word (like
+    "pregunta" itself, or "uno"/"dos") with the fixture's entries, not a real
+    topic-indicating word.
+    When match() is called.
+    Then it does NOT try to narrow to those entries -- generic words that
+    appear across unrelated topics must not look like a topic match (this is
+    the exact failure mode that previously made "buenos días" false-match
+    vacaciones via the shared, too-generic word "días")."""
+    bot = make_bot()
+    result = bot.match("tengo una pregunta, es la numero uno o la dos?")
+    assert result["respuesta"] == bot.fallback
+
+
+def test_negative_sentiment_takes_priority_over_keyword_narrowing(make_bot):
+    """Given a message that both shares a topic word with an entry and
+    carries negative sentiment.
+    When match() is called.
+    Then the tone-aware grosero response still wins -- rude/frustrated tone
+    is checked before the syntactic narrowing, same priority as over a plain
+    greeting."""
+    texto = "la variante que me diste es pesima y nadie me ayuda"
+    bot = make_bot({texto: ("1 star", 0.9)})
+    result = bot.match(texto)
+    assert result["respuesta"] == "Grosero de prueba."
+
+
 def test_fixture_entry_with_explicit_null_ruta_stays_null(make_bot):
     """Given a fixture entry with ruta: null in the source JSON (entry 2).
     When it is the matched entry.
