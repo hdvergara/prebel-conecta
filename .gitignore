@@ -16,9 +16,10 @@ e2e/test-results/
 e2e/playwright-report/
 e2e/blob-report/
 
-# Prebel-specific artifacts
-prebel-conecta/.env
-prebel-conecta/specs/
+# Prebel-specific artifacts (this file sits at the repo root, so patterns are
+# root-relative; .env holds WhatsApp connection secrets -- see .env.example)
+.env
+specs/
 
 # OS cruft
 .DS_Store

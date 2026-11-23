@@ -104,10 +104,59 @@ Ese umbral de 0,65 y los embeddings del FAQ se recalibran con
 cómo generar frases nuevas del FAQ con cualquier motor de IA (Ollama, OpenAI,
 Claude o Gemini) está en [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
 
+## Canal de WhatsApp (opcional, solo para pruebas locales)
+
+`model/whatsapp_service.py` es un canal adicional para el mismo `RRHHBot` que
+usa `rrhh_api.py`, pero por WhatsApp en vez de por el navegador: recibe los
+webhooks de un entorno compatible con la WhatsApp Cloud API, responde con
+`RRHHBot.match()` y envía la respuesta de vuelta a esa misma API. No
+reemplaza `rrhh_api.py` ni depende de él; es un segundo consumidor de
+`RRHHBot`, independiente.
+
+Para probarlo localmente hace falta un entorno que hable ese protocolo. El
+repositorio hermano `whatsapp-emulator/` (en `C:\PyProje\PyBot\whatsapp-emulator`,
+**fuera de este repositorio** — no es parte del entregable, solo un auxiliar
+de pruebas hasta tener un entorno de pruebas real de Meta) imita esa API.
+
+1. Copia `.env.example` a `.env` (ya está en `.gitignore`) y ajusta los
+   valores si quieres, o deja los que coinciden con un emulador recién
+   arrancado.
+2. Arranca el emulador (en su propia carpeta, con Node.js 18+):
+
+   ```powershell
+   cd C:\PyProje\PyBot\whatsapp-emulator
+   $env:WEBHOOK_URL = "http://localhost:3000/webhook"
+   $env:VERIFY_TOKEN = "prebel-conecta-dev"
+   $env:APP_SECRET = "prebel-conecta-dev-secret"
+   $env:PHONE_NUMBER_ID = "100000000000001"
+   node server.js
+   ```
+
+3. Arranca el canal (desde `prebel-conecta/`, con el `.venv` activo):
+
+   ```powershell
+   python model\whatsapp_service.py
+   ```
+
+4. Abre `http://localhost:4010`, ve a **Config** y usa **Verificar webhook**
+   (confirma que `/webhook` responde el `hub.challenge`). Luego escríbele al
+   bot desde la interfaz tipo teléfono: la pregunta llega por webhook, pasa
+   por `RRHHBot` y la respuesta vuelve a aparecer en esa misma interfaz.
+
+Los parámetros de conexión y secretos (`WA_GRAPH_URL`, `WA_PHONE_NUMBER_ID`,
+`WA_ACCESS_TOKEN`, `WA_VERIFY_TOKEN`, `WA_APP_SECRET`, `WA_SERVICE_PORT`) se
+leen de variables de entorno o de `.env` — nunca están hardcodeados. Para
+apuntar a un entorno de pruebas real de Meta más adelante, solo hay que
+cambiar esos valores (y el `WA_GRAPH_URL` a `https://graph.facebook.com`); el
+código de `whatsapp_service.py` no cambia.
+
 ## Estructura
 
 - `dist/` — sitio estático (HTML, CSS y JS). No tiene paso de compilación.
-- `model/` — `rrhh_bot.py`, `rrhh_api.py` (Flask en `127.0.0.1:5000`), `faq_rrhh.json`
+- `model/` — `rrhh_bot.py`, `rrhh_api.py` (Flask en `127.0.0.1:5000`,
+  consumidor desde el navegador), `whatsapp_service.py` (Flask en
+  `WA_SERVICE_PORT`, consumidor desde un entorno compatible con la WhatsApp
+  Cloud API — ver sección **Canal de WhatsApp** más abajo), `faq_rrhh.json`
   (contenido del FAQ), `empleados_mock.json` (los 4 perfiles ficticios, única
   fuente de los datos de persona — `catalogo.py` solo los lee y exporta) y
   `entrenar.py` (cachea embeddings y recalibra el umbral de similitud — ver
