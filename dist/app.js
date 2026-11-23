@@ -114,7 +114,22 @@ function suggestions() {
     {id:'nomina', label:'¿Cómo descargo mi comprobante de nómina?'},
     {id:'certificado', label:'¿Cómo obtengo mi certificado laboral?'}
   ];
-  $('matches').innerHTML = options.length ? options.map(o=>'<button class="chip" data-route="'+o.id+'">'+o.label+' →</button>').join('') : '<p class="muted">Sin coincidencias. Prueba con “vacaciones”, “pago” o “certificado”.</p>';
+  // Las coincidencias de FAQ (preguntas.*) son respuestas para leer: se
+  // muestran compactas y, al hacer clic, abren el texto completo en un
+  // modal (data-faq-id), sin navegar. Las de trámite son acciones: navegan
+  // directo a su formulario (data-route), igual que antes.
+  $('matches').innerHTML = options.length ? options.map(o => {
+    const esFaq = preguntas.some(p => p.id === o.id);
+    return esFaq
+      ? '<button class="chip" data-faq-id="'+o.id+'">'+o.label+'</button>'
+      : '<button class="chip" data-route="'+o.id+'">'+o.label+' →</button>';
+  }).join('') : '<p class="muted">Sin coincidencias. Prueba con “vacaciones”, “pago” o “certificado”, o</p><button class="chip" data-ask>Preguntar al asistente →</button>';
+}
+function mostrarPregunta(p) {
+  const owner = ownerLabel(p.area);
+  const tag = owner ? '<p class="muted">'+owner+'</p>' : '';
+  const link = p.ruta ? action(p.ruta, p.enlace || enlacesModelo[p.ruta] || 'Ir a la sección') : '';
+  show(p.titulo, '<p>'+escapeHtml(p.respuesta)+'</p>'+tag+link);
 }
 function show(title,body) {
   detail.innerHTML='<h2 id="dialog-title">'+title+'</h2>'+body;
@@ -302,21 +317,18 @@ function route(){
   const view=pages[location.hash.slice(1)];if(typeof view==='function' && Object.hasOwn(pages,location.hash.slice(1)))view();else if(modal.open)modal.close();
 }
 $('services').innerHTML=services.map(([id,title,desc,icon,tint])=>'<a class="service" href="#'+id+'" style="--tint:'+tint+'"><em aria-hidden="true">'+icon+'</em><b>'+title+'</b><span>'+desc+'</span></a>').join('');
-document.addEventListener('click',event=>{const btn=event.target.closest('[data-route]');if(btn){if(location.hash==='#'+btn.dataset.route)route();else location.hash=btn.dataset.route;}});
+document.addEventListener('click',event=>{
+  const routeBtn=event.target.closest('[data-route]');
+  if(routeBtn){if(location.hash==='#'+routeBtn.dataset.route)route();else location.hash=routeBtn.dataset.route;return;}
+  const faqBtn=event.target.closest('[data-faq-id]');
+  if(faqBtn){const p=preguntas.find(x=>x.id===faqBtn.dataset.faqId);if(p)mostrarPregunta(p);return;}
+  const askBtn=event.target.closest('[data-ask]');
+  if(askBtn)askAssistant($('query').value.trim());
+});
 $('query').oninput=suggestions;
-$('query').onkeydown=e=>{
-  if(e.key!=='Enter')return;
-  const text=$('query').value.trim();
-  if(!text){$('matches').querySelector('button')?.click();return;}
-  const top=rank(text)[0];
-  // Exigimos al menos 2 palabras coincidentes antes de navegar directo: con 1
-  // sola, basta una palabra genérica (p. ej. "días" en "buenos días") para
-  // apuntar a un trámite que no tiene nada que ver. Por debajo de eso, mejor
-  // preguntarle al modelo semántico, que si distingue un saludo de una
-  // pregunta real.
-  if(top && top.score>=2) $('matches').querySelector('button[data-route="'+top.id+'"]')?.click();
-  else askAssistant(text);
-};
+// Enter no navega ni envía nada: las sugerencias ya se actualizan en vivo al
+// escribir, y cada una (sea trámite o pregunta del FAQ) solo actúa si se le
+// hace clic explícitamente.
 $('close').onclick=()=>modal.close();
 modal.onclose=()=>{if(modal.open || location.hash==='#preguntas' || location.hash.startsWith('#faq-'))return; if(location.hash!=='#inicio')location.hash='inicio';};
 window.addEventListener('hashchange',route);

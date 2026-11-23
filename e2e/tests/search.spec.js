@@ -2,7 +2,11 @@
 const { test, expect } = require("@playwright/test");
 
 // Context: a fresh browser page loading dist/index.html with the default
-// profile (Valentina, no localStorage set yet).
+// profile (Valentina, no localStorage set yet). Suggestion chips come in two
+// kinds: trámite/feature chips (data-route, navigate on click, keep the " →"
+// arrow) and FAQ-answer chips (data-faq-id, open the full answer in a modal
+// on click, no navigation, no arrow). Enter is intentionally a no-op --
+// every match only acts on an explicit click.
 
 test.describe("Búsqueda predictiva", () => {
   test("typing a known keyword shows a matching suggestion chip", async ({ page }) => {
@@ -14,9 +18,11 @@ test.describe("Búsqueda predictiva", () => {
     await expect(page.locator("#matches .chip").first()).toContainText(/certificado/i);
   });
 
-  test("clicking a suggestion chip navigates to that feature", async ({ page }) => {
-    // Given: the visitor has typed a query that produces a 'nomina' chip.
-    // When: they click that chip.
+  test("clicking a trámite chip navigates to that feature", async ({ page }) => {
+    // Given: "comprobante de pago" ranks the 'nomina' trámite (action chip,
+    // data-route) above the FAQ answer with the same score (empirically
+    // verified: stable sort keeps the base intent first on ties).
+    // When: the visitor clicks that chip.
     // Then: the URL hash becomes #nomina and the payroll dialog opens.
     await page.goto("/index.html");
     await page.fill("#query", "comprobante de pago");
@@ -25,43 +31,61 @@ test.describe("Búsqueda predictiva", () => {
     await expect(page.locator("#modal")).toBeVisible();
   });
 
-  test("no keyword overlap shows the no-match hint, not a false chip", async ({ page }) => {
+  test("clicking an FAQ chip shows the full answer in a modal, without navigating", async ({ page }) => {
+    // Given: the same query also ranks the FAQ entry "¿Cómo descargo mi
+    // comprobante de pago?" (data-faq-id, no "→" arrow).
+    // When: the visitor clicks that chip specifically.
+    // Then: the modal opens with the full answer text -- but the URL hash
+    // does not change (this is a direct show(), not a route navigation).
+    await page.goto("/index.html");
+    await page.fill("#query", "comprobante de pago");
+    const before = page.url();
+    await page.locator('#matches [data-faq-id]', { hasText: "¿Cómo descargo mi comprobante de pago?" }).click();
+    await expect(page.locator("#modal")).toBeVisible();
+    await expect(page.locator("#detail")).toContainText("Abre Nómina, elige uno de los tres períodos");
+    expect(page.url()).toBe(before);
+  });
+
+  test("no keyword overlap offers to ask the assistant instead of a false chip", async ({ page }) => {
     // Given: the page has loaded.
     // When: the visitor types text with no overlap with any known intent
     // (empirically verified against the real intents/catalogo data).
-    // Then: #matches shows the no-match hint instead of any chip.
+    // Then: #matches shows the no-match hint plus an explicit "ask the
+    // assistant" action -- not a coincidental chip pretending to match.
     await page.goto("/index.html");
     await page.fill("#query", "zzqq wwrr");
     await expect(page.locator("#matches")).toContainText("Sin coincidencias");
-    await expect(page.locator("#matches .chip")).toHaveCount(0);
+    await expect(page.locator("#matches [data-route], #matches [data-faq-id]")).toHaveCount(0);
+    await expect(page.locator("#matches [data-ask]")).toBeVisible();
   });
 
-  test("pressing Enter with a confident (2+ word) match activates that chip", async ({ page }) => {
-    // Given: "comprobante de pago" matches 2 words against the 'nomina'
-    // intent (empirically verified) -- a confident, non-coincidental match.
-    // When: the visitor presses Enter without clicking it explicitly.
-    // Then: the top chip's route is activated, same as a click would do.
+  test("Enter never navigates or opens anything, even with a confident match", async ({ page }) => {
+    // Given: "comprobante de pago" produces a confident (score 2) chip.
+    // When: the visitor presses Enter instead of clicking anything.
+    // Then: nothing happens -- no modal, no navigation. This is also what
+    // fixes the original bug report (a greeting like "buenos dias"
+    // coincidentally matching "días" in the vacation-balance intent could
+    // hijack Enter); disabling Enter entirely removes that whole class of
+    // false positive, not just the specific "días" case.
     await page.goto("/index.html");
     await page.fill("#query", "comprobante de pago");
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/#nomina$/);
-    await expect(page.locator("#modal")).toBeVisible();
+    await expect(page.locator("#modal")).not.toBeVisible();
+    await expect(page).not.toHaveURL(/#nomina$/);
   });
 
-  test("a greeting that coincidentally shares one word doesn't hijack Enter", async ({ page }) => {
-    // Given: "buenos dias" scores exactly 1 point against several intents
-    // (saldo, prediccion, ...) purely because "dias" is a keyword in all of
-    // them -- a coincidental, single-word match, not real intent.
-    // When: the visitor presses Enter.
-    // Then: Enter does NOT silently open an unrelated feature (e.g. the
-    // vacation-balance dialog); it defers to the semantic model instead,
-    // which is reachable precisely because no chip was confidently clicked.
+  test("asking the assistant requires clicking the explicit button, not Enter", async ({ page }) => {
+    // Given: a query with no keyword match at all.
     await page.route("http://127.0.0.1:5000/reply", route => route.abort());
     await page.goto("/index.html");
-    await page.fill("#query", "buenos dias");
+    await page.fill("#query", "zzqq wwrr");
+
+    // When: the visitor presses Enter first (should do nothing)...
     await page.keyboard.press("Enter");
-    await expect(page.locator("#modal")).not.toBeVisible();
-    await expect(page).not.toHaveURL(/#saldo$/);
+    await expect(page.locator("#model-box")).not.toBeVisible();
+
+    // ...then clicks "Preguntar al asistente" explicitly.
+    await page.click("#matches [data-ask]");
     await expect(page.locator("#model-box")).toBeVisible();
   });
 });

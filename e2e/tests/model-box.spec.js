@@ -6,7 +6,8 @@ const { test, expect } = require("@playwright/test");
 // CONSTITUTION.md "Harness": e2e must not depend on a real Flask backend or
 // the real ~1GB ML models being installed. The query text 'zzqq wwrr' is
 // empirically verified (see search.spec.js) to produce zero suggestion
-// chips, so Enter reliably falls through to askAssistant() in both tests.
+// chips, so the "Preguntar al asistente" button appears and both tests
+// click it explicitly to reach askAssistant() (Enter itself is a no-op).
 
 test.describe("Cuadro de resultado del modelo", () => {
   test("a mocked semantic match renders the full comparison box", async ({ page }) => {
@@ -23,9 +24,10 @@ test.describe("Cuadro de resultado del modelo", () => {
     await page.goto("/index.html");
 
     // When: the visitor types a free-text question with no chip match and
-    // presses Enter, so askAssistant() calls the (mocked) model directly.
+    // clicks "Preguntar al asistente", so askAssistant() calls the (mocked)
+    // model directly.
     await page.fill("#query", "zzqq wwrr");
-    await page.keyboard.press("Enter");
+    await page.click("#matches [data-ask]");
 
     // Then: the response box becomes visible with the mocked answer, 91%
     // confidence, the sentiment label, the owning department, and a working
@@ -51,7 +53,7 @@ test.describe("Cuadro de resultado del modelo", () => {
 
     // When: the visitor asks a free-text question with no chip match.
     await page.fill("#query", "zzqq wwrr");
-    await page.keyboard.press("Enter");
+    await page.click("#matches [data-ask]");
 
     // Then: the box still appears, but confidence/sentiment explicitly say
     // "not available" and the answer is the FAQ model's own static fallback
