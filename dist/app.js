@@ -306,10 +306,34 @@ document.addEventListener('click',event=>{const btn=event.target.closest('[data-
 $('query').oninput=suggestions;
 $('query').onkeydown=e=>{
   if(e.key!=='Enter')return;
-  const btn=$('matches').querySelector('button');
-  if(btn)btn.click();else askAssistant($('query').value.trim());
+  const text=$('query').value.trim();
+  if(!text){$('matches').querySelector('button')?.click();return;}
+  const top=rank(text)[0];
+  // Exigimos al menos 2 palabras coincidentes antes de navegar directo: con 1
+  // sola, basta una palabra genérica (p. ej. "días" en "buenos días") para
+  // apuntar a un trámite que no tiene nada que ver. Por debajo de eso, mejor
+  // preguntarle al modelo semántico, que si distingue un saludo de una
+  // pregunta real.
+  if(top && top.score>=2) $('matches').querySelector('button[data-route="'+top.id+'"]')?.click();
+  else askAssistant(text);
 };
 $('close').onclick=()=>modal.close();
 modal.onclose=()=>{if(modal.open || location.hash==='#preguntas' || location.hash.startsWith('#faq-'))return; if(location.hash!=='#inicio')location.hash='inicio';};
 window.addEventListener('hashchange',route);
 $('balance').textContent=available();suggestions();route();
+try {
+  // Primera visita (sin perfil guardado): la demo igual arranca mostrando a
+  // Valentina para no bloquear la página (el <dialog> modal sí bloquea, por
+  // eso este aviso no lo usa), pero se lo decimos explícitamente en vez de
+  // asumirlo en silencio, y dejamos elegir otro perfil ahí mismo.
+  if (!localStorage.getItem('perfil-demo')) {
+    const aviso = document.createElement('p');
+    aviso.id = 'perfil-aviso';
+    aviso.className = 'status';
+    aviso.setAttribute('role', 'status');
+    aviso.innerHTML = 'Por ahora se muestra con <b>Valentina Ruiz</b>. Elige tu perfil en <b>Perfil de demo</b>, arriba, si prefieres otro. ' +
+      '<button class="chip" id="perfil-aviso-cerrar">Entendido</button>';
+    document.querySelector('main').prepend(aviso);
+    $('perfil-aviso-cerrar').onclick = () => aviso.remove();
+  }
+} catch {}

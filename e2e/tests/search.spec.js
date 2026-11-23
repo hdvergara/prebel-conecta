@@ -36,16 +36,32 @@ test.describe("Búsqueda predictiva", () => {
     await expect(page.locator("#matches .chip")).toHaveCount(0);
   });
 
-  test("pressing Enter with a visible chip activates that chip", async ({ page }) => {
-    // Given: a query whose top-ranked chip is the 'saldo' feature itself
-    // (empirically verified; many queries rank a richer FAQ phrasing above
-    // the base feature, which this test deliberately avoids).
+  test("pressing Enter with a confident (2+ word) match activates that chip", async ({ page }) => {
+    // Given: "comprobante de pago" matches 2 words against the 'nomina'
+    // intent (empirically verified) -- a confident, non-coincidental match.
     // When: the visitor presses Enter without clicking it explicitly.
     // Then: the top chip's route is activated, same as a click would do.
     await page.goto("/index.html");
-    await page.fill("#query", "proyectar mi saldo");
+    await page.fill("#query", "comprobante de pago");
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/#saldo$/);
+    await expect(page).toHaveURL(/#nomina$/);
     await expect(page.locator("#modal")).toBeVisible();
+  });
+
+  test("a greeting that coincidentally shares one word doesn't hijack Enter", async ({ page }) => {
+    // Given: "buenos dias" scores exactly 1 point against several intents
+    // (saldo, prediccion, ...) purely because "dias" is a keyword in all of
+    // them -- a coincidental, single-word match, not real intent.
+    // When: the visitor presses Enter.
+    // Then: Enter does NOT silently open an unrelated feature (e.g. the
+    // vacation-balance dialog); it defers to the semantic model instead,
+    // which is reachable precisely because no chip was confidently clicked.
+    await page.route("http://127.0.0.1:5000/reply", route => route.abort());
+    await page.goto("/index.html");
+    await page.fill("#query", "buenos dias");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#modal")).not.toBeVisible();
+    await expect(page).not.toHaveURL(/#saldo$/);
+    await expect(page.locator("#model-box")).toBeVisible();
   });
 });
