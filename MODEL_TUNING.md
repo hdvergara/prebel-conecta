@@ -293,10 +293,10 @@ de la existente.
 ### Reverificado tras las frases nuevas de incapacidad
 
 `faq_rrhh.json` creció después a 49 frases (dos nuevas en
-`incapacidad-reporte`, para reconocer "licencia médica" como sinónimo de
-"incapacidad" -- arreglo de contenido aparte, sin relación con el
-parafraseador ni con el desempate; ver el historial de commits). Se
-re-corrió el mismo diagnóstico de superposición contra el `faq_rrhh.json`
+`incapacidad-reporte`, para reconocer "licencias médicas" como sinónimo de
+"incapacidad" — arreglo de contenido aparte, sin relación con el
+parafraseador ni con el desempate). Se volvió a correr el mismo diagnóstico
+de superposición contra el `faq_rrhh.json`
 final: el residual de nómina/prima sigue exactamente en 0.725 (mismo par,
 sin cambios) y sigue siendo el único por encima de `THRESHOLD`. Las frases
 nuevas de incapacidad no introdujeron ninguna superposición nueva por
