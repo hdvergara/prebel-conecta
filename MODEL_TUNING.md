@@ -290,6 +290,21 @@ Verificado después de este cambio: pytest 52/52, Node 10/10, Playwright
 `MARGEN_DISPUTA` es una constante nueva y separada, no una reinterpretación
 de la existente.
 
+### Reverificado tras las frases nuevas de incapacidad
+
+`faq_rrhh.json` creció después a 49 frases (dos nuevas en
+`incapacidad-reporte`, para reconocer "licencias médicas" como sinónimo de
+"incapacidad" — arreglo de contenido aparte, sin relación con el
+parafraseador ni con el desempate). Se volvió a correr el mismo diagnóstico
+de superposición contra el `faq_rrhh.json`
+final: el residual de nómina/prima sigue exactamente en 0.725 (mismo par,
+sin cambios) y sigue siendo el único por encima de `THRESHOLD`. Las frases
+nuevas de incapacidad no introdujeron ninguna superposición nueva por
+encima de 0.65 -- la más cercana es contra vacaciones ("¿Cuántos días de
+incapacidad he tomado?" vs. "¿Cuál es el proceso para pedir días de
+descanso?"), en 0.563, con margen cómodo. Las conclusiones de esta sección
+siguen vigentes sin cambios.
+
 ## Reproducir esta prueba
 
 ```powershell
