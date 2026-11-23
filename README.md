@@ -169,3 +169,12 @@ npm install
 npx playwright install --with-deps chromium   # solo la primera vez
 npx playwright test
 ```
+
+Cada corrida deja un dashboard HTML en `e2e/playwright-report/` (resultado de
+cada prueba, con sus trazas y capturas si falla). Para abrirlo:
+
+```powershell
+npx playwright show-report
+```
+
+No se versiona (está en `.gitignore`): se regenera en cada corrida.
