@@ -2,8 +2,8 @@
   "fallback": "No tengo una respuesta segura para eso. Escribe a rrhh@tuempresa.com y una persona del equipo te ayuda.",
   "faq": [
     {
-      "preguntas": ["¿Cómo solicito vacaciones?", "Quiero tomar mis vacaciones", "¿Cuál es el proceso para pedir días de descanso?"],
-      "respuesta": "Envía la solicitud a tu jefe directo con al menos [X] días de anticipación y regístrala en [sistema]. RRHH la confirma por correo.",
+      "preguntas": ["¿Cómo solicito vacaciones?", "Quiero tomar mis vacaciones", "¿Cuál es el proceso para pedir días de descanso?", "¿Cuántos días de vacaciones tengo?", "¿Cuál es mi saldo de vacaciones?"],
+      "respuesta": "Tu saldo de vacaciones aparece en tu perfil, en Mi espacio. Para solicitarlas, envía la solicitud a tu jefe directo con al menos [X] días de anticipación y regístrala en [sistema]; RRHH la confirma por correo.",
       "ruta": "vacaciones",
       "area": "gh"
     },

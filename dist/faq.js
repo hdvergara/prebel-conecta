@@ -5,9 +5,11 @@ const faqModel = {
       "preguntas": [
         "¿Cómo solicito vacaciones?",
         "Quiero tomar mis vacaciones",
-        "¿Cuál es el proceso para pedir días de descanso?"
+        "¿Cuál es el proceso para pedir días de descanso?",
+        "¿Cuántos días de vacaciones tengo?",
+        "¿Cuál es mi saldo de vacaciones?"
       ],
-      "respuesta": "Envía la solicitud a tu jefe directo con al menos [X] días de anticipación y regístrala en [sistema]. RRHH la confirma por correo.",
+      "respuesta": "Tu saldo de vacaciones aparece en tu perfil, en Mi espacio. Para solicitarlas, envía la solicitud a tu jefe directo con al menos [X] días de anticipación y regístrala en [sistema]; RRHH la confirma por correo.",
       "ruta": "vacaciones",
       "area": "gh"
     },
@@ -115,7 +117,7 @@ const faqModel = {
       "preguntas": [
         "¿Hay crédito de vivienda?",
         "¿Cómo pido un crédito para reformar mi casa?",
-        "Necesito ayuda para pagar el impuesto predial"
+        "¿Hay un crédito para pagar el impuesto predial?"
       ],
       "respuesta": "Incluye compra de vivienda o lote, reformas, calamidades habitacionales, legalización de inmuebles y pago de impuesto predial. El monto, plazo y tasa varían según el trámite; indícanos cuál te interesa.",
       "ruta": "credito-vivienda",
