@@ -23,6 +23,11 @@ SENTIMENT_MODEL = "nlptown/bert-base-multilingual-uncased-sentiment"  # preentre
 # 0.65, no 0.55: una pregunta fuera del FAQ (p. ej. "horas extras") puede
 # parecerse ~0.60 a nómina y antes se respondía con esa entrada.
 THRESHOLD = 0.65  # similitud mínima; por debajo se escala a una persona de RRHH
+# Si el segundo mejor tema (de otra entrada) queda a esto o menos del mejor
+# puntaje, se consideran "en disputa" -- ver _desempatar_por_palabras. No es
+# THRESHOLD: ese decide si confiar en el mejor puntaje; esto decide, dado que
+# ya se confía en él, si el tema ganador es realmente el correcto.
+MARGEN_DISPUTA = 0.05
 
 # Frases de saludo habituales (sin acentos, en minúscula) para dar una
 # bienvenida en vez del mensaje de respaldo cuando no hay pregunta real detrás.
@@ -147,6 +152,35 @@ class RRHHBot:
                 "Cuéntame cuál te interesa (o escribe tu pregunta lo más parecido posible a una de esas) "
                 "para darte la respuesta exacta.")
 
+    def _desempatar_por_palabras(self, text: str, mejor_tema: int, temas_en_disputa: set) -> int:
+        """Entre mejor_tema y temas_en_disputa -- temas de OTRAS entradas casi
+        empatados semánticamente con el ganador (ver MARGEN_DISPUTA) -- usa
+        las palabras que distinguen a cada uno (restando las que comparten
+        con los demás en disputa) para ver si el mensaje se inclina
+        claramente hacia uno solo. No es un embedding nuevo ni más
+        entrenamiento: una capa léxica barata sobre temas que el modelo
+        semántico ya dejó casi empatados, reutilizando _palabras_clave (la
+        misma de la revisión sintáctica de arriba). Si ningún tema tiene una
+        palabra distintiva presente, o si más de uno la tiene, se respeta el
+        resultado del modelo semántico -- esta capa solo actúa cuando la
+        señal léxica es clara e inequívoca."""
+        palabras_texto = _palabras_clave(text)
+        if not palabras_texto:
+            return mejor_tema
+        temas = [mejor_tema, *temas_en_disputa]
+        puntajes = {}
+        for t in temas:
+            propias = set(self.palabras_por_item[t])
+            for otro in temas:
+                if otro != t:
+                    propias -= self.palabras_por_item[otro]
+            puntajes[t] = len(palabras_texto & propias)
+        mejor_puntaje = max(puntajes.values())
+        if mejor_puntaje == 0:
+            return mejor_tema
+        ganadores = [t for t, p in puntajes.items() if p == mejor_puntaje]
+        return ganadores[0] if len(ganadores) == 1 else mejor_tema
+
     def match(self, text: str) -> dict:
         """Intención detectada: respuesta más la ruta/área de la app ligadas a esa pregunta,
         la confianza de la coincidencia semántica y el sentimiento del mensaje.
@@ -158,7 +192,14 @@ class RRHHBot:
         del FAQ (revisión sintáctica, no semántica), se le pide a la persona
         que acote su pregunta a cuál de esos temas, en vez de adivinar o
         devolver el genérico; (3) un saludo sin pregunta real detrás recibe
-        una bienvenida; (4) cualquier otro caso usa el respaldo genérico."""
+        una bienvenida; (4) cualquier otro caso usa el respaldo genérico.
+
+        Con una coincidencia segura, si el segundo mejor tema (de otra
+        entrada) queda casi empatado (MARGEN_DISPUTA), se usa
+        _desempatar_por_palabras antes de responder -- dos temas pueden
+        compartir la misma forma de pregunta ("¿cuándo pagan X?") sin ser el
+        mismo tema; ver MODEL_TUNING.md para el caso real que motivó esto
+        (nómina/prima)."""
         q = self.model.encode(text, convert_to_tensor=True)
         scores = util.cos_sim(q, self.emb)[0]
         best = int(scores.argmax())
@@ -175,7 +216,14 @@ class RRHHBot:
             else:
                 respuesta = self.fallback
             return {"respuesta": respuesta, "ruta": None, "area": None, "confianza": confianza, "sentimiento": sentimiento, "guia": None}
-        item = self.items[self.owner[best]]
+        mejor_tema = self.owner[best]
+        temas_en_disputa = {
+            self.owner[i] for i in range(len(scores))
+            if self.owner[i] != mejor_tema and float(scores[i]) >= confianza - MARGEN_DISPUTA
+        }
+        if temas_en_disputa:
+            mejor_tema = self._desempatar_por_palabras(text, mejor_tema, temas_en_disputa)
+        item = self.items[mejor_tema]
         # "guia" es el paso accionable por su cuenta, sin la frase que remite
         # a "revisa tu perfil" -- la usan canales que ya pueden dar el dato
         # real (ver model/whatsapp_service.py) para no repetir ambas cosas.

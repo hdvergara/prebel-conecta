@@ -228,20 +228,67 @@ rendimientos decrecientes (0.902 → 0.734 → 0.725) -- se detuvo ahí en vez
 de seguir adivinando reformulaciones. Pares que superan `THRESHOLD`: de 3 a
 1.
 
-**Por qué queda un residual:** "¿cuándo me pagan X?" es, para el modelo de
-embeddings, un mismo *tipo* de pregunta sin importar qué sea X -- el
-parecido no es un defecto de redacción, es que la pregunta genuinamente
-tiene la misma forma en los dos temas. Más reformulación no lo va a bajar
-mucho más. Mitigación real: cada tema tiene 3 frases registradas, y
-`rrhh_bot.py` compara contra las tres y toma la mejor -- el riesgo solo se
-materializa si la pregunta real de alguien se parece más a esta frase
-puntual que a las otras 5 frases relevantes, lo cual acota el problema
-aunque no lo elimina. Se documenta como una limitación aceptada, no una
-pendiente.
+**Por qué quedó un residual (en ese momento):** "¿cuándo me pagan X?" es,
+para el modelo de embeddings, un mismo *tipo* de pregunta sin importar qué
+sea X -- el parecido no es un defecto de redacción, es que la pregunta
+genuinamente tiene la misma forma en los dos temas. Más reformulación no lo
+iba a bajar mucho más.
 
-Verificado después del cambio: pytest 48/48, Node 10/10, Playwright 20/21
-(la misma falla preexistente y no relacionada de siempre). `THRESHOLD` en
+Verificado en ese momento: pytest 48/48, Node 10/10, Playwright 20/21 (la
+misma falla preexistente y no relacionada de siempre). `THRESHOLD` en
 `rrhh_bot.py` sigue en 0.65, sin tocar.
+
+## Segunda capa: desempate por palabras cuando dos temas casi empatan
+
+El residual de arriba no era solo teórico. Probado con consultas parecidas a
+lo que escribiría alguien real (no las frases exactas del FAQ):
+
+```text
+'cuánta prima me pagan este semestre'  -> nómina 0.681, prima 0.671  (¡MAL -- gana nómina!)
+'cuánto me pagan de nómina este mes'   -> nómina 0.752, prima 0.736  (bien, pero por poco)
+'cuánto me pagan este mes'             -> prima  0.719, nómina 0.716 (ambiguo de verdad, sin pista léxica)
+```
+
+El primer caso es un error real y demostrable, no hipotético: una pregunta
+que dice "prima" explícitamente la contesta nómina. Reformular más las
+frases del FAQ ya había dado rendimientos decrecientes (sección anterior);
+en vez de seguir por ahí, se añadió una capa adicional en `rrhh_bot.py`
+-- sin datos de entrenamiento nuevos, sin tocar el modelo de embeddings --
+que actúa solo cuando dos temas de entradas distintas quedan casi empatados
+(`MARGEN_DISPUTA = 0.05`) en un resultado que de por sí ya es confiable
+(`confianza >= THRESHOLD`):
+
+- `_desempatar_por_palabras()` calcula, para cada tema en disputa, las
+  palabras que lo distinguen de los demás en disputa (restando las que
+  comparten) -- p. ej. "nómina" le pertenece solo a nómina, "prima" y
+  "semestral" solo a prima; "cuándo", "pagan", "mes" se restan por
+  compartidas.
+- Si el mensaje contiene una palabra distintiva de un único tema en disputa,
+  gana ese tema sobre el que había elegido el modelo semántico.
+- Si no contiene ninguna, o contiene palabras distintivas de más de un tema
+  (igual de empatadas léxicamente), se respeta el resultado semántico
+  original -- esta capa solo actúa con una señal clara e inequívoca, nunca
+  adivina.
+
+Resultado, verificado contra el modelo real (no solo con el mock de los
+tests): el primer caso de arriba pasó de "nómina" (mal) a "prima" (bien); el
+segundo se mantuvo en "nómina" pero ahora de forma deliberada, no por un
+margen de 0.016; el tercero -- genuinamente ambiguo, sin "nómina" ni "prima"
+en el texto -- se dejó tal cual, sin forzar una respuesta.
+
+Cuatro unit tests nuevos en `tests/test_rrhh_bot.py`, contra un fixture
+dedicado (`tests/fixtures/faq_empate_test.json`, dos temas que comparten
+todo excepto una palabra cada uno) con `cos_sim` mockeado para forzar
+puntajes empatados exactos: el desempate corrige cuando hay una palabra
+distintiva clara, respeta el resultado semántico cuando no hay ninguna o
+hay más de una, y nunca se activa si los temas no estaban realmente
+empatados -- cubre tanto el camino feliz como las dos formas en que podría
+sobre-actuar.
+
+Verificado después de este cambio: pytest 52/52, Node 10/10, Playwright
+20/21 (la misma falla preexistente). `THRESHOLD` sigue sin tocarse --
+`MARGEN_DISPUTA` es una constante nueva y separada, no una reinterpretación
+de la existente.
 
 ## Reproducir esta prueba
 
