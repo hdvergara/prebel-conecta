@@ -8,6 +8,7 @@ __pycache__/
 
 # runtime/log artifacts
 backend.log
+model/faq_embeddings.pt
 
 # e2e (prebel-conecta/e2e/)
 e2e/node_modules/
@@ -15,12 +16,17 @@ e2e/test-results/
 e2e/playwright-report/
 e2e/blob-report/
 
-# Prebel-specific artifacts
-prebel-conecta/.env
-prebel-conecta/specs/
+# Prebel-specific artifacts (this file sits at the repo root, so patterns are
+# root-relative; .env holds WhatsApp connection secrets -- see .env.example)
+.env
+specs/
 
 # OS cruft
 .DS_Store
 Thumbs.db
 
+# Python virtual environment
 .venv/
+
+# Specs
+.specs/

@@ -14,6 +14,7 @@ import pytest
 from fakes import FakeSentenceTransformer, FakeSentimentPipeline
 
 FIXTURE = Path(__file__).parent / "fixtures" / "faq_test.json"
+FIXTURE_EMPATE = Path(__file__).parent / "fixtures" / "faq_empate_test.json"
 
 
 @pytest.fixture
@@ -22,10 +23,10 @@ def make_bot():
     heavy models faked."""
     import rrhh_bot
 
-    def _make(sentiment_responses=None):
+    def _make(sentiment_responses=None, faq_path=FIXTURE):
         with patch.object(rrhh_bot, "SentenceTransformer", return_value=FakeSentenceTransformer()), \
              patch.object(rrhh_bot, "pipeline", return_value=FakeSentimentPipeline(sentiment_responses)):
-            return rrhh_bot.RRHHBot(faq_path=FIXTURE)
+            return rrhh_bot.RRHHBot(faq_path=faq_path)
 
     return _make
 
@@ -42,6 +43,28 @@ def test_match_exact_phrasing_returns_the_matched_entry(make_bot):
     assert result["respuesta"] == "Respuesta uno"
     assert result["ruta"] == "ruta-uno"
     assert result["area"] == "area-uno"
+
+
+def test_match_includes_guia_field_when_the_entry_has_one(make_bot):
+    """Given a matched entry with an optional 'guia' field -- the actionable
+    step on its own, without the referral to "revisa tu perfil" baked into
+    the full respuesta text.
+    When match() is called.
+    Then 'guia' comes through in the result, for channels (like
+    whatsapp_service.py) that can state a personalized value directly and
+    just need the next step after it, without repeating that referral."""
+    bot = make_bot()
+    result = bot.match("pregunta uno")
+    assert result["guia"] == "Guía de prueba."
+
+
+def test_match_guia_is_none_when_the_entry_has_no_guia_field(make_bot):
+    """Given a matched entry with no 'guia' field (entry 2 in the fixture).
+    When match() is called.
+    Then 'guia' is None rather than a missing key or an empty string."""
+    bot = make_bot()
+    result = bot.match("pregunta dos")
+    assert result["guia"] is None
 
 
 def test_match_unrelated_text_falls_back(make_bot):
@@ -129,6 +152,103 @@ def test_match_computes_sentiment_even_when_faq_match_fails(make_bot):
     assert result["sentimiento"]["etiqueta"] == "negativo"
 
 
+def test_greeting_with_no_faq_match_returns_saludo_not_fallback(make_bot):
+    """Given a plain greeting that matches no FAQ entry and carries neutral
+    sentiment (the fake pipeline's default).
+    When match() is called.
+    Then it returns the dedicated saludo text, not the cold generic fallback."""
+    bot = make_bot()
+    result = bot.match("buenos dias")
+    assert result["respuesta"] == "Saludo de prueba."
+    assert result["ruta"] is None
+
+
+def test_negative_sentiment_with_no_faq_match_returns_grosero_not_fallback(make_bot):
+    """Given a message with no FAQ match and negative sentiment.
+    When match() is called.
+    Then it returns the dedicated tone-aware grosero text, not the generic
+    fallback -- an out-of-scope message is treated differently depending on
+    whether the person sounds upset."""
+    bot = make_bot({"esto es pesimo y nadie responde": ("1 star", 0.8)})
+    result = bot.match("esto es pesimo y nadie responde")
+    assert result["respuesta"] == "Grosero de prueba."
+    assert result["ruta"] is None
+    assert result["sentimiento"]["etiqueta"] == "negativo"
+
+
+def test_negative_sentiment_takes_priority_over_greeting_wording(make_bot):
+    """Given a message that both opens with a greeting word and carries
+    negative sentiment.
+    When match() is called.
+    Then the tone-aware grosero response wins over the saludo response --
+    rude/frustrated tone is checked first, as a priority, before treating an
+    out-of-scope message as a harmless greeting."""
+    bot = make_bot({"buenos dias esto es un servicio pesimo": ("1 star", 0.9)})
+    result = bot.match("buenos dias esto es un servicio pesimo")
+    assert result["respuesta"] == "Grosero de prueba."
+
+
+def test_high_confidence_match_wins_even_with_negative_sentiment(make_bot):
+    """Given a message that matches a real FAQ entry with high confidence,
+    even though it carries negative sentiment.
+    When match() is called.
+    Then the matched FAQ answer is returned -- tone only changes the
+    out-of-scope/no-match path, never overrides a confident real match."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot({"pregunta uno pero furioso": ("1 star", 0.9)})
+    scores = torch.tensor([[0.90, 0.10, 0.05]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("pregunta uno pero furioso")
+    assert result["respuesta"] == "Respuesta uno"
+    assert result["sentimiento"]["etiqueta"] == "negativo"
+
+
+def test_keyword_overlap_without_a_close_embedding_match_asks_to_narrow(make_bot):
+    """Given a message with no close embedding similarity to any registered
+    phrasing, but that shares a significant word ("variante") with entry 1's
+    own preguntas ("variante uno").
+    When match() is called.
+    Then instead of the generic fallback or a guess, it asks the person to
+    narrow their question to one of the FAQ's own phrasings for that topic --
+    naming entry 1's first phrasing ("pregunta uno") -- rather than silently
+    answering the wrong question or giving up with the cold fallback."""
+    bot = make_bot()
+    result = bot.match("necesito la variante correcta para mi caso")
+    assert result["ruta"] is None
+    assert "pregunta uno" in result["respuesta"]
+    assert result["respuesta"] not in (bot.fallback, bot.saludo, bot.grosero)
+
+
+def test_keyword_overlap_narrowing_is_skipped_for_too_generic_a_word(make_bot):
+    """Given a message that only shares a stopworded/too-short word (like
+    "pregunta" itself, or "uno"/"dos") with the fixture's entries, not a real
+    topic-indicating word.
+    When match() is called.
+    Then it does NOT try to narrow to those entries -- generic words that
+    appear across unrelated topics must not look like a topic match (this is
+    the exact failure mode that previously made "buenos días" false-match
+    vacaciones via the shared, too-generic word "días")."""
+    bot = make_bot()
+    result = bot.match("tengo una pregunta, es la numero uno o la dos?")
+    assert result["respuesta"] == bot.fallback
+
+
+def test_negative_sentiment_takes_priority_over_keyword_narrowing(make_bot):
+    """Given a message that both shares a topic word with an entry and
+    carries negative sentiment.
+    When match() is called.
+    Then the tone-aware grosero response still wins -- rude/frustrated tone
+    is checked before the syntactic narrowing, same priority as over a plain
+    greeting."""
+    texto = "la variante que me diste es pesima y nadie me ayuda"
+    bot = make_bot({texto: ("1 star", 0.9)})
+    result = bot.match(texto)
+    assert result["respuesta"] == "Grosero de prueba."
+
+
 def test_fixture_entry_with_explicit_null_ruta_stays_null(make_bot):
     """Given a fixture entry with ruta: null in the source JSON (entry 2).
     When it is the matched entry.
@@ -138,3 +258,85 @@ def test_fixture_entry_with_explicit_null_ruta_stays_null(make_bot):
     result = bot.match("pregunta dos")
     assert result["ruta"] is None
     assert result["area"] == "area-dos"
+
+
+# Context: a bot built from tests/fixtures/faq_empate_test.json (2 topics,
+# "alfa" and "beta", sharing every word except that one each). cos_sim is
+# mocked directly to force a confident-but-contested result, the exact
+# real-world case this was built for: nómina and prima tied at 0.902 on
+# "¿Cuándo pagan la nómina/prima?" (see MODEL_TUNING.md). Phrase order for
+# this fixture: 0="¿Cuándo me dan alfa?", 1="Pregunta sobre alfa" (both
+# ruta-alfa), 2="¿Cuándo me dan beta?", 3="Pregunta sobre beta" (both
+# ruta-beta).
+
+def test_tied_topics_are_resolved_by_a_distinguishing_word_in_the_text(make_bot):
+    """Given a confident match (0.72) that argmax assigns to ruta-beta, with
+    ruta-alfa's best phrase close behind (0.70, within MARGEN_DISPUTA) --
+    and the actual text contains "alfa", not "beta".
+    When match() is called.
+    Then the tie-break corrects the result to ruta-alfa: this is exactly
+    what fixed the real "cuánta prima me pagan este semestre" case
+    wrongly matching nómina instead of prima."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot(faq_path=FIXTURE_EMPATE)
+    scores = torch.tensor([[0.68, 0.70, 0.72, 0.65]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("necesito ayuda con alfa")
+    assert result["ruta"] == "ruta-alfa"
+
+
+def test_tied_topics_without_a_distinguishing_word_keep_the_semantic_pick(make_bot):
+    """Given the same tied scores as above, but text with neither "alfa" nor
+    "beta" in it.
+    When match() is called.
+    Then there's no clear lexical signal to act on, so the original
+    semantic winner (ruta-beta) is respected rather than guessed at."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot(faq_path=FIXTURE_EMPATE)
+    scores = torch.tensor([[0.68, 0.70, 0.72, 0.65]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("tengo una consulta pendiente")
+    assert result["ruta"] == "ruta-beta"
+
+
+def test_a_confident_untied_match_is_never_touched_by_the_tiebreaker(make_bot):
+    """Given a confident match (0.90) with every other topic's best score
+    well outside MARGEN_DISPUTA (0.35 at most) -- not a contested result --
+    even though the text happens to mention "alfa", the losing topic's word.
+    When match() is called.
+    Then the tie-break never engages (no topic is "in dispute"), so the
+    confident semantic winner (ruta-beta) stands; this guards against the
+    tiebreaker reaching into matches that were never actually ambiguous."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot(faq_path=FIXTURE_EMPATE)
+    scores = torch.tensor([[0.30, 0.35, 0.90, 0.20]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("esto es sobre alfa completamente")
+    assert result["ruta"] == "ruta-beta"
+
+
+def test_tied_topics_with_both_distinguishing_words_present_keep_the_semantic_pick(make_bot):
+    """Given the same tied scores, but text that mentions BOTH "alfa" and
+    "beta" -- lexically ambiguous too, not just semantically.
+    When match() is called.
+    Then there's no single unambiguous lexical winner (both topics score
+    equally), so the tie-break declines to pick one and the original
+    semantic winner (ruta-beta) is respected."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot(faq_path=FIXTURE_EMPATE)
+    scores = torch.tensor([[0.68, 0.70, 0.72, 0.65]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("quiero comparar alfa y beta")
+    assert result["ruta"] == "ruta-beta"

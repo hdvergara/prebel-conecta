@@ -25,10 +25,17 @@ Prebel Conecta is a **demo HR portal** with two independent layers:
    message when it isn't reachable. The semantic layer must never become a hard
    dependency of the static layer.
 
+3. **Channel layer** (`model/whatsapp_service.py`) — an optional, local-only
+   second consumer of `RRHHBot`, independent of `rrhh_api.py`: a webhook
+   bridge to any WhatsApp Cloud API-compatible environment (the local emulator
+   in the sibling `whatsapp-emulator/` folder today — not part of this repo,
+   only a dev/test aid — or real Meta infrastructure later). It never runs in
+   CI or in the static deploy; it's a developer-run process for manual testing.
+
 Data flow for FAQ content: `model/faq_rrhh.json` (source of truth, `ruta`/`area`
 per entry) → `catalogo.py` generates `dist/faq.js` (static consumer) and feeds
-`RRHHBot` directly (semantic consumer). Both consumers read the same file; don't
-let them drift into separate copies of the same facts.
+`RRHHBot` directly (semantic and channel consumers). All three consumers read
+the same file; don't let them drift into separate copies of the same facts.
 
 ## 2. Railguards
 
@@ -60,6 +67,30 @@ style preference.
   `faq_rrhh.json` are intentional template markers**, not bugs — don't silently
   invent concrete values for them. If real values become available, source them
   from `specs/` (local-only) and keep R1 in mind for anything derived from it.
+- **R6 — Channel secrets stay out of the repo.** `model/whatsapp_service.py`'s
+  connection parameters and secrets (`WA_ACCESS_TOKEN`, `WA_VERIFY_TOKEN`,
+  `WA_APP_SECRET`, …) are read from environment variables / `.env` only —
+  never hardcoded, never committed. `.env.example` holds placeholder values
+  that only work against a freshly started local emulator; `.env` itself is
+  gitignored at the repo root (not `prebel-conecta/.env` — this file *is* the
+  repo root, so that path never matched). If `.gitignore` is ever edited,
+  re-verify with `git check-ignore -v .env` that it's still excluded.
+- **R7 — WhatsApp sender identification is basic, not authentication.**
+  `whatsapp_service.py` has two identification paths, both equally informal:
+  `buscar_persona_por_telefono()` matches the sender's WhatsApp number
+  against `empleados_mock.json`'s fictitious `telefono` field (same spirit as
+  caller ID), and `buscar_persona_por_documento()` accepts whatever
+  `numero_documento` the sender types in chat (`IDENTIFICADOS_POR_DOCUMENTO`,
+  an in-memory, per-process cache — lost on restart, not shared across
+  processes) — self-reported, with no corroboration at all, weaker than the
+  phone match. Either way, anyone claiming that number or typing that
+  document number sees that data, with no further proof of identity. This is
+  deliberate and demo-appropriate, but neither is a trust boundary: never
+  extend either to anything sensitive (salary, documents, changing data)
+  without real verification (MFA or equivalent) first, and never describe
+  either to a user as secure. If that verification is added later, it
+  belongs in its own explicit step — don't silently upgrade either lookup's
+  trust level in place.
 
 ## 3. Harness
 

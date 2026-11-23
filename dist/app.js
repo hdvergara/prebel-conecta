@@ -47,7 +47,14 @@ for (const recurso of recursos.filter(r => r.contenido)) {
   const titulos = {dotacion:'¿Cómo pido el cambio de mis guantes o gafas?', ergonomia:'¿Cómo solicito una revisión de mi puesto de oficina?'};
   if (titulos[recurso.id]) preguntas.push({id:'faq-'+recurso.id, ruta:recurso.id, titulo:titulos[recurso.id], respuesta:recurso.contenido, enlace:recurso.titulo});
 }
-const enlacesModelo = {vacaciones:'Planear vacaciones', nomina:'Abrir Nómina', certificado:'Generar certificado'};
+const enlacesModelo = {
+  vacaciones:'Planear vacaciones', nomina:'Abrir Nómina', certificado:'Generar certificado',
+  'eps-inclusion':'Solicitar inclusión', 'eps-traslado':'Solicitar traslado',
+  'credito-educacion':'Solicitar crédito', 'credito-mascotas':'Solicitar crédito',
+  'credito-salud':'Solicitar crédito', 'credito-vivienda':'Solicitar crédito',
+  prima:'Ver mi prima', 'incapacidad-reporte':'Reportar incapacidad',
+  cesantias:'Solicitar retiro', 'pension-traslado':'Solicitar traslado',
+};
 faqModel.faq.forEach((item,i) => {
   preguntas.push({id:'faq-modelo-'+i, ruta:item.ruta, titulo:item.preguntas[0], respuesta:item.respuesta, enlace:item.ruta && enlacesModelo[item.ruta], area:item.area, palabras:item.preguntas.join(' ')});
 });
@@ -107,7 +114,22 @@ function suggestions() {
     {id:'nomina', label:'¿Cómo descargo mi comprobante de nómina?'},
     {id:'certificado', label:'¿Cómo obtengo mi certificado laboral?'}
   ];
-  $('matches').innerHTML = options.length ? options.map(o=>'<button class="chip" data-route="'+o.id+'">'+o.label+' →</button>').join('') : '<p class="muted">Sin coincidencias. Prueba con “vacaciones”, “pago” o “certificado”.</p>';
+  // Las coincidencias de FAQ (preguntas.*) son respuestas para leer: se
+  // muestran compactas y, al hacer clic, abren el texto completo en un
+  // modal (data-faq-id), sin navegar. Las de trámite son acciones: navegan
+  // directo a su formulario (data-route), igual que antes.
+  $('matches').innerHTML = options.length ? options.map(o => {
+    const esFaq = preguntas.some(p => p.id === o.id);
+    return esFaq
+      ? '<button class="chip" data-faq-id="'+o.id+'">'+o.label+'</button>'
+      : '<button class="chip" data-route="'+o.id+'">'+o.label+' →</button>';
+  }).join('') : '<p class="muted">Sin coincidencias. Prueba con “vacaciones”, “pago” o “certificado”, o</p><button class="chip" data-ask>Preguntar al asistente →</button>';
+}
+function mostrarPregunta(p) {
+  const owner = ownerLabel(p.area);
+  const tag = owner ? '<p class="muted">'+owner+'</p>' : '';
+  const link = p.ruta ? action(p.ruta, p.enlace || enlacesModelo[p.ruta] || 'Ir a la sección') : '';
+  show(p.titulo, '<p>'+escapeHtml(p.respuesta)+'</p>'+tag+link);
 }
 function show(title,body) {
   detail.innerHTML='<h2 id="dialog-title">'+title+'</h2>'+body;
@@ -200,6 +222,60 @@ function certificate(){
     show('Certificado generado','<p>'+body+'</p><button id="download" class="primary">Descargar certificado (.txt)</button>');$('download').onclick=()=>download('certificado-demo.txt',body);
   };
 }
+const opts = values => values.map(v=>'<option>'+v+'</option>').join('');
+const tramites = [
+  {ruta:'eps-inclusion', titulo:'Inclusión de beneficiario a EPS', area:'nomina', campos:[
+    {id:'parentesco', etiqueta:'Parentesco del beneficiario', tipo:'select', opciones:['Cónyuge o compañero permanente','Hijo(a)','Padre/Madre']},
+    {id:'nombre_beneficiario', etiqueta:'Nombre completo del beneficiario', tipo:'text'},
+  ]},
+  {ruta:'eps-traslado', titulo:'Traslado de EPS', area:'nomina', campos:[
+    {id:'eps_actual', etiqueta:'EPS actual', tipo:'text'},
+    {id:'eps_nueva', etiqueta:'EPS a la que te trasladas', tipo:'text'},
+  ]},
+  {ruta:'credito-educacion', titulo:'Crédito de educación o compra de computador', area:'bienestar', campos:[
+    {id:'destino', etiqueta:'Destino del crédito', tipo:'select', opciones:['Estudios técnicos, tecnológicos o profesionales','Compra de computador']},
+    {id:'monto', etiqueta:'Monto solicitado (COP)', tipo:'number'},
+  ]},
+  {ruta:'credito-mascotas', titulo:'Crédito de calamidad doméstica de mascotas', area:'bienestar', campos:[
+    {id:'mascota', etiqueta:'Nombre de la mascota', tipo:'text'},
+    {id:'motivo', etiqueta:'Motivo', tipo:'select', opciones:['Cirugía','Hospitalización','Exámenes','Medicamentos','Gastos fúnebres']},
+  ]},
+  {ruta:'credito-salud', titulo:'Crédito para casos especiales de salud', area:'bienestar', campos:[
+    {id:'beneficiario', etiqueta:'¿Para quién es?', tipo:'select', opciones:['Para mí','Cónyuge o compañero permanente','Hijo(a)','Padre/Madre']},
+    {id:'descripcion', etiqueta:'Describe brevemente la situación', tipo:'textarea'},
+  ]},
+  {ruta:'credito-vivienda', titulo:'Crédito de vivienda', area:'bienestar', campos:[
+    {id:'tipo', etiqueta:'Tipo de trámite', tipo:'select', opciones:['Adquisición de vivienda o lote','Reforma de vivienda','Calamidad habitacional','Legalización de inmueble','Pago de impuesto predial']},
+  ]},
+  {ruta:'incapacidad-reporte', titulo:'Reporte de incapacidad médica', area:'nomina', campos:[
+    {id:'fecha_inicio', etiqueta:'Fecha de inicio', tipo:'date'},
+    {id:'dias', etiqueta:'Días de incapacidad', tipo:'number'},
+    {id:'entidad', etiqueta:'Entidad que la expide', tipo:'select', opciones:['EPS','ARL','IPS autorizada']},
+  ]},
+  {ruta:'cesantias', titulo:'Retiro de cesantías', area:'nomina', campos:[
+    {id:'motivo', etiqueta:'Motivo del retiro', tipo:'select', opciones:['Compra de vivienda','Reforma de vivienda','Pago de impuesto predial','Pago de crédito hipotecario','Gastos notariales','Estudio']},
+  ]},
+  {ruta:'pension-traslado', titulo:'Traslado de fondo de pensiones a Colpensiones', area:'nomina', campos:[
+    {id:'fondo_actual', etiqueta:'Fondo de pensiones actual', tipo:'text'},
+  ]},
+];
+function campoHtml(c){
+  if(c.tipo==='select') return '<label for="t-'+c.id+'">'+c.etiqueta+'</label><select id="t-'+c.id+'">'+opts(c.opciones)+'</select>';
+  if(c.tipo==='textarea') return '<label for="t-'+c.id+'">'+c.etiqueta+'</label><textarea id="t-'+c.id+'" rows="3" required></textarea>';
+  return '<label for="t-'+c.id+'">'+c.etiqueta+'</label><input id="t-'+c.id+'" type="'+c.tipo+'" required>';
+}
+function tramiteForm(cfg){
+  show(cfg.titulo,'<p class="muted">'+ownerLabel(cfg.area)+'</p><form id="tramite-form">'+cfg.campos.map(campoHtml).join('')+'<button class="primary">Enviar solicitud</button></form>');
+  $('tramite-form').onsubmit=e=>{
+    e.preventDefault();
+    const detalle=Object.fromEntries(cfg.campos.map(c=>[c.id,$('t-'+c.id).value.trim()]));
+    requests.unshift({id:token(),kind:cfg.titulo,status:'Pendiente',detalle});save();
+    show('Solicitud registrada','<p>Tu solicitud de "'+cfg.titulo+'" quedó pendiente de revisión por el equipo de '+ownerLabel(cfg.area)+'.</p>'+action('solicitudes','Ver mis solicitudes'));
+  };
+}
+function primaView(){
+  show('Prima de servicios','<p class="status">'+persona.dias_prima+' días acumulados en el semestre actual</p><p>La prima se acumula día a día durante cada semestre y se paga en junio y diciembre. El equipo de Nómina resuelve dudas adicionales.</p>');
+}
 function historyView(){
   show('Mis solicitudes',requests.length?'':'<p>Aún no tienes solicitudes. Empieza eligiendo tus fechas de descanso.</p>'+action('vacaciones','Solicitar vacaciones'));
   for(const r of requests){
@@ -214,7 +290,12 @@ function historyView(){
   }
 }
 function route(){
-  const pages={vacaciones:vacation,prediccion:forecast,nomina:payroll,solicitudes:historyView,certificado:certificate,saldo:()=>show('Mi saldo de vacaciones','<p class="status">'+available()+' días hábiles disponibles</p><p>Saldo inicial de la demo: '+persona.saldo+' días. Las solicitudes pendientes reservan días hasta que las canceles.</p>'+action('prediccion','Proyectar saldo'))};
+  const pages={
+    vacaciones:vacation,prediccion:forecast,nomina:payroll,solicitudes:historyView,certificado:certificate,
+    saldo:()=>show('Mi saldo de vacaciones','<p class="status">'+available()+' días hábiles disponibles</p><p>Saldo inicial de la demo: '+persona.saldo+' días. Las solicitudes pendientes reservan días hasta que las canceles.</p>'+action('prediccion','Proyectar saldo')),
+    prima:primaView,
+    ...Object.fromEntries(tramites.map(cfg=>[cfg.ruta,()=>tramiteForm(cfg)])),
+  };
   const id = location.hash.slice(1);
   if (id.startsWith('faq-') && preguntas.some(p => id === p.id)) {
     const item = $(id);
@@ -236,14 +317,51 @@ function route(){
   const view=pages[location.hash.slice(1)];if(typeof view==='function' && Object.hasOwn(pages,location.hash.slice(1)))view();else if(modal.open)modal.close();
 }
 $('services').innerHTML=services.map(([id,title,desc,icon,tint])=>'<a class="service" href="#'+id+'" style="--tint:'+tint+'"><em aria-hidden="true">'+icon+'</em><b>'+title+'</b><span>'+desc+'</span></a>').join('');
-document.addEventListener('click',event=>{const btn=event.target.closest('[data-route]');if(btn){if(location.hash==='#'+btn.dataset.route)route();else location.hash=btn.dataset.route;}});
+document.addEventListener('click',event=>{
+  const routeBtn=event.target.closest('[data-route]');
+  if(routeBtn){if(location.hash==='#'+routeBtn.dataset.route)route();else location.hash=routeBtn.dataset.route;return;}
+  const faqBtn=event.target.closest('[data-faq-id]');
+  if(faqBtn){const p=preguntas.find(x=>x.id===faqBtn.dataset.faqId);if(p)mostrarPregunta(p);return;}
+  const askBtn=event.target.closest('[data-ask]');
+  if(askBtn)askAssistant($('query').value.trim());
+});
 $('query').oninput=suggestions;
-$('query').onkeydown=e=>{
-  if(e.key!=='Enter')return;
-  const btn=$('matches').querySelector('button');
-  if(btn)btn.click();else askAssistant($('query').value.trim());
-};
+// Enter no navega ni envía nada: las sugerencias ya se actualizan en vivo al
+// escribir, y cada una (sea trámite o pregunta del FAQ) solo actúa si se le
+// hace clic explícitamente.
 $('close').onclick=()=>modal.close();
 modal.onclose=()=>{if(modal.open || location.hash==='#preguntas' || location.hash.startsWith('#faq-'))return; if(location.hash!=='#inicio')location.hash='inicio';};
 window.addEventListener('hashchange',route);
 $('balance').textContent=available();suggestions();route();
+try {
+  // Primera visita (sin perfil guardado): la demo igual arranca mostrando a
+  // Valentina para no bloquear la página (el <dialog> modal sí bloquea, por
+  // eso este aviso no lo usa), pero pedimos la identidad explícitamente --
+  // al menos el número de documento -- en vez de asumirla en silencio.
+  // Omitir sigue siendo posible (es una demo, no un login real) y el
+  // selector "Perfil de demo" de arriba también sigue funcionando.
+  if (!localStorage.getItem('perfil-demo')) {
+    const aviso = document.createElement('p');
+    aviso.id = 'perfil-aviso';
+    aviso.className = 'status';
+    aviso.setAttribute('role', 'status');
+    aviso.innerHTML =
+      'Para identificarte en la demo, escribe tu número de documento. Mientras tanto se muestra con <b>Valentina Ruiz</b>; también puedes elegir tu perfil en <b>Perfil de demo</b>, arriba.<br>' +
+      '<input id="perfil-aviso-id" type="text" inputmode="numeric" placeholder="Número de documento" aria-label="Número de documento"> ' +
+      '<button class="chip" id="perfil-aviso-entrar">Entrar</button> ' +
+      '<button class="chip" id="perfil-aviso-cerrar">Omitir</button>' +
+      '<span id="perfil-aviso-error" class="error" role="alert"></span><br>' +
+      '<small class="muted">Documentos de prueba: '+catalogo.personas.map(p=>p.numero_documento+' ('+p.nombre.split(' ')[0]+')').join(', ')+'.</small>';
+    document.querySelector('main').prepend(aviso);
+    const identificar = () => {
+      const valor = $('perfil-aviso-id').value.trim();
+      const encontrada = catalogo.personas.find(p => p.numero_documento === valor);
+      if (!encontrada) { $('perfil-aviso-error').textContent = 'No encontramos ese número de documento en la demo.'; return; }
+      try { localStorage.setItem('perfil-demo', encontrada.id); } catch {}
+      location.reload();
+    };
+    $('perfil-aviso-entrar').onclick = identificar;
+    $('perfil-aviso-id').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); identificar(); } };
+    $('perfil-aviso-cerrar').onclick = () => aviso.remove();
+  }
+} catch {}

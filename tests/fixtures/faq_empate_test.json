@@ -1,0 +1,19 @@
+{
+  "fallback": "Fallback de prueba.",
+  "saludo": "Saludo de prueba.",
+  "grosero": "Grosero de prueba.",
+  "faq": [
+    {
+      "preguntas": ["¿Cuándo me dan alfa?", "Pregunta sobre alfa"],
+      "respuesta": "Respuesta alfa",
+      "ruta": "ruta-alfa",
+      "area": "area-alfa"
+    },
+    {
+      "preguntas": ["¿Cuándo me dan beta?", "Pregunta sobre beta"],
+      "respuesta": "Respuesta beta",
+      "ruta": "ruta-beta",
+      "area": "area-beta"
+    }
+  ]
+}
