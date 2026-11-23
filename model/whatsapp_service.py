@@ -18,6 +18,7 @@ Uso (PowerShell, con el emulador ya corriendo en :4010):
 """
 import hashlib
 import hmac
+import json
 import logging
 import os
 from pathlib import Path
@@ -47,6 +48,49 @@ log = logging.getLogger("whatsapp_service")
 
 app = Flask(__name__)
 bot = RRHHBot()
+
+EMPLEADOS = json.loads((Path(__file__).resolve().parent / "empleados_mock.json").read_text(encoding="utf-8"))["empleados"]
+
+# Qué dato básico puede devolver cada ruta, una vez identificado el remitente
+# por su número de WhatsApp -- ver CONSTITUTION.md R7: esto es identificación
+# básica (por número), no autenticación. MFA/confianza queda para más adelante.
+DATOS_BASICOS_POR_RUTA = {
+    "vacaciones": ("dias_vacaciones_acumulados", "días hábiles de vacaciones acumulados"),
+    "prima": ("dias_prima_acumulados", "días de prima acumulados este semestre"),
+}
+
+
+def _solo_digitos(texto: str) -> str:
+    return "".join(c for c in (texto or "") if c.isdigit())
+
+
+def buscar_persona_por_telefono(numero_whatsapp: str) -> dict | None:
+    """Identificación básica, NO autenticación: empareja el número de
+    WhatsApp del remitente contra el teléfono ficticio de
+    empleados_mock.json. Cualquiera que escriba desde ese número ve ese dato
+    -- suficiente para la demo, pero no un sustituto de un factor real de
+    verificación (MFA/confianza, ver CONSTITUTION.md R7)."""
+    objetivo = _solo_digitos(numero_whatsapp)
+    if not objetivo:
+        return None
+    for persona in EMPLEADOS:
+        if _solo_digitos(persona["telefono"]) == objetivo:
+            return persona
+    return None
+
+
+def personalizar(respuesta: str, ruta: str | None, persona: dict | None) -> str:
+    """Añade el dato básico real (si la ruta lo tiene y el remitente quedó
+    identificado por teléfono) a la respuesta genérica del FAQ."""
+    campo = DATOS_BASICOS_POR_RUTA.get(ruta)
+    if not campo or not persona:
+        return respuesta
+    atributo, etiqueta = campo
+    valor = persona.get(atributo)
+    if valor is None:
+        return respuesta
+    return (f"{respuesta} Según tu número de WhatsApp, {persona['primer_nombre']}: tienes {valor} {etiqueta} "
+            "(identificación básica por número, sin verificación adicional todavía).")
 
 
 def _messages_url() -> str:
@@ -91,7 +135,8 @@ def procesar_mensaje(msg: dict) -> None:
         return
     texto = msg["text"]["body"]
     match = bot.match(texto)
-    responder_texto(remitente, match["respuesta"])
+    persona = buscar_persona_por_telefono(remitente)
+    responder_texto(remitente, personalizar(match["respuesta"], match["ruta"], persona))
 
 
 @app.get("/webhook")

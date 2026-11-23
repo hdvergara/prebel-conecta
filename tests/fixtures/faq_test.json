@@ -1,5 +1,7 @@
 {
   "fallback": "Fallback de prueba.",
+  "saludo": "Saludo de prueba.",
+  "grosero": "Grosero de prueba.",
   "faq": [
     {
       "preguntas": ["pregunta uno", "variante uno"],

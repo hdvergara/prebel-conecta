@@ -7,6 +7,7 @@ Uso (PowerShell):
     python rrhh_bot.py
 """
 import json
+import unicodedata
 from pathlib import Path
 
 import torch
@@ -22,6 +23,19 @@ SENTIMENT_MODEL = "nlptown/bert-base-multilingual-uncased-sentiment"  # preentre
 # parecerse ~0.60 a nómina y antes se respondía con esa entrada.
 THRESHOLD = 0.65  # similitud mínima; por debajo se escala a una persona de RRHH
 
+# Frases de saludo habituales (sin acentos, en minúscula) para dar una
+# bienvenida en vez del mensaje de respaldo cuando no hay pregunta real detrás.
+SALUDOS = (
+    "hola", "buenas", "buenos dias", "buenas tardes", "buenas noches",
+    "buen dia", "que mas", "como estas", "como vas", "saludos", "hey",
+    "quiubo", "que hubo",
+)
+
+
+def _normalizar(texto: str) -> str:
+    sin_acentos = unicodedata.normalize("NFKD", texto.lower()).encode("ascii", "ignore")
+    return sin_acentos.decode("ascii")
+
 
 class RRHHBot:
     """Reutilízala desde Teams, Slack, Telegram o WhatsApp: RRHHBot().reply(texto)."""
@@ -29,6 +43,10 @@ class RRHHBot:
     def __init__(self, faq_path: Path = FAQ_PATH):
         data = json.loads(faq_path.read_text(encoding="utf-8"))
         self.fallback = data["fallback"]
+        # Opcionales: si el FAQ no los trae (p. ej. un fixture de prueba más
+        # viejo), se cae de vuelta al mismo fallback genérico.
+        self.saludo = data.get("saludo", self.fallback)
+        self.grosero = data.get("grosero", self.fallback)
         self.items = data["faq"]
         self.model = SentenceTransformer(MODEL_NAME)
         self.sentiment_pipeline = pipeline("sentiment-analysis", model=SENTIMENT_MODEL)
@@ -69,16 +87,33 @@ class RRHHBot:
         etiqueta = "negativo" if estrellas <= 2 else "positivo" if estrellas >= 4 else "neutral"
         return {"etiqueta": etiqueta, "estrellas": estrellas, "confianza": round(float(result["score"]), 2)}
 
+    def _es_saludo(self, text: str) -> bool:
+        plano = _normalizar(text)
+        return any(frase in plano for frase in SALUDOS)
+
     def match(self, text: str) -> dict:
         """Intención detectada: respuesta más la ruta/área de la app ligadas a esa pregunta,
-        la confianza de la coincidencia semántica y el sentimiento del mensaje."""
+        la confianza de la coincidencia semántica y el sentimiento del mensaje.
+
+        Sin una coincidencia segura (confianza < THRESHOLD), en vez de caer
+        siempre al mismo mensaje de respaldo frío, se prioriza el tono: un
+        mensaje de sentimiento negativo (grosero o frustrado) recibe una
+        respuesta que lo reconoce antes que nada -- incluso antes que
+        reconocer un saludo --, y solo si el tono es neutral/positivo se
+        revisa si es apenas un saludo sin pregunta real detrás."""
         q = self.model.encode(text, convert_to_tensor=True)
         scores = util.cos_sim(q, self.emb)[0]
         best = int(scores.argmax())
         confianza = round(float(scores[best]), 2)
         sentimiento = self.sentiment(text)
         if confianza < THRESHOLD:
-            return {"respuesta": self.fallback, "ruta": None, "area": None, "confianza": confianza, "sentimiento": sentimiento}
+            if sentimiento["etiqueta"] == "negativo":
+                respuesta = self.grosero
+            elif self._es_saludo(text):
+                respuesta = self.saludo
+            else:
+                respuesta = self.fallback
+            return {"respuesta": respuesta, "ruta": None, "area": None, "confianza": confianza, "sentimiento": sentimiento}
         item = self.items[self.owner[best]]
         return {"respuesta": item["respuesta"], "ruta": item.get("ruta"), "area": item.get("area"), "confianza": confianza, "sentimiento": sentimiento}
 

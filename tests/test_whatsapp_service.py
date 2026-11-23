@@ -152,3 +152,108 @@ def test_a_failing_outbound_send_does_not_break_the_webhook_response(client):
             "Content-Type": "application/json", "X-Hub-Signature-256": _firmar(raw),
         })
     assert resp.status_code == 200
+
+
+# Context: basic sender identification (CONSTITUTION.md R7 -- by WhatsApp
+# number only, never a substitute for real authentication), against the real
+# model/empleados_mock.json content (harmless to load; only the ML models are faked).
+
+def test_buscar_persona_por_telefono_matches_regardless_of_formatting(servicio):
+    """Given a WhatsApp sender id as plain digits (573005550104).
+    When compared against empleados_mock.json's telefono field, which is
+    formatted with spaces and a leading '+' ("+57 300 555 0104").
+    Then it still matches, by digits only."""
+    persona = servicio.buscar_persona_por_telefono("573005550104")
+    assert persona["primer_nombre"] == "Andrés"
+
+
+def test_buscar_persona_por_telefono_returns_none_for_an_unknown_number(servicio):
+    """Given a WhatsApp sender id that matches no mock employee's telefono.
+    When buscar_persona_por_telefono() is called.
+    Then it returns None rather than guessing a persona."""
+    assert servicio.buscar_persona_por_telefono("573001112233") is None
+
+
+def test_personalizar_adds_the_real_value_for_a_route_with_basic_data(servicio):
+    """Given a known persona and a ruta with a mapped field (vacaciones).
+    When personalizar() is called.
+    Then the real value is appended, with an explicit note that this
+    identification is basic (by number), not verified -- per R7."""
+    persona = servicio.buscar_persona_por_telefono("573005550101")  # Valentina, 12 días
+    resultado = servicio.personalizar("Texto genérico.", "vacaciones", persona)
+    assert "12 días hábiles de vacaciones acumulados" in resultado
+    assert "identificación básica" in resultado
+
+
+def test_personalizar_leaves_response_untouched_without_a_matched_persona(servicio):
+    """Given no persona was identified (unknown sender).
+    When personalizar() is called.
+    Then the original response text comes back unchanged -- no data is
+    invented for someone who can't even be basically identified."""
+    assert servicio.personalizar("Texto genérico.", "vacaciones", None) == "Texto genérico."
+
+
+def test_personalizar_leaves_response_untouched_for_a_route_without_basic_data(servicio):
+    """Given a known persona but a ruta with no entry in
+    DATOS_BASICOS_POR_RUTA (e.g. certificado -- there's no single mock field
+    that answers it).
+    When personalizar() is called.
+    Then the original response text comes back unchanged."""
+    persona = servicio.buscar_persona_por_telefono("573005550101")
+    assert servicio.personalizar("Texto genérico.", "certificado", persona) == "Texto genérico."
+
+
+def test_identified_sender_gets_a_personalized_basic_data_value_in_the_reply(client, servicio):
+    """Given an incoming message from a phone number that matches Valentina's
+    mock telefono, and a match whose ruta is 'vacaciones'.
+    When /webhook handles it end to end.
+    Then the reply sent back includes her real vacation balance, appended to
+    RRHHBot's own generic answer."""
+    body = {
+        "entry": [{"changes": [{"value": {"messages": [
+            {"id": "wamid.6", "from": "573005550101", "type": "text", "text": {"body": "cuantos dias de vacaciones tengo"}},
+        ]}}]}],
+    }
+    raw = json.dumps(body).encode("utf-8")
+    fake_response = MagicMock(ok=True, content=b"{}")
+    fake_response.json.return_value = {}
+    with patch("whatsapp_service.requests.post", return_value=fake_response) as post, \
+         patch.object(servicio.bot, "match", return_value={
+             "respuesta": "Tu saldo de vacaciones aparece en tu perfil, en Mi espacio.",
+             "ruta": "vacaciones", "area": "gh", "confianza": 1.0,
+             "sentimiento": {"etiqueta": "neutral", "estrellas": 3, "confianza": 0.5},
+         }):
+        resp = client.post("/webhook", data=raw, headers={
+            "Content-Type": "application/json", "X-Hub-Signature-256": _firmar(raw),
+        })
+    assert resp.status_code == 200
+    _read_call, reply_call = post.call_args_list
+    texto = reply_call.kwargs["json"]["text"]["body"]
+    assert "12 días hábiles de vacaciones acumulados" in texto
+
+
+def test_unidentified_sender_gets_the_plain_match_without_personalization(client, servicio):
+    """Given an incoming message from a phone number that matches no mock
+    employee.
+    When /webhook handles it end to end.
+    Then the reply is exactly RRHHBot's own text, unmodified."""
+    body = {
+        "entry": [{"changes": [{"value": {"messages": [
+            {"id": "wamid.7", "from": "573009999999", "type": "text", "text": {"body": "cuantos dias de vacaciones tengo"}},
+        ]}}]}],
+    }
+    raw = json.dumps(body).encode("utf-8")
+    fake_response = MagicMock(ok=True, content=b"{}")
+    fake_response.json.return_value = {}
+    respuesta_bot = "Tu saldo de vacaciones aparece en tu perfil, en Mi espacio."
+    with patch("whatsapp_service.requests.post", return_value=fake_response) as post, \
+         patch.object(servicio.bot, "match", return_value={
+             "respuesta": respuesta_bot, "ruta": "vacaciones", "area": "gh", "confianza": 1.0,
+             "sentimiento": {"etiqueta": "neutral", "estrellas": 3, "confianza": 0.5},
+         }):
+        resp = client.post("/webhook", data=raw, headers={
+            "Content-Type": "application/json", "X-Hub-Signature-256": _firmar(raw),
+        })
+    assert resp.status_code == 200
+    _read_call, reply_call = post.call_args_list
+    assert reply_call.kwargs["json"]["text"]["body"] == respuesta_bot

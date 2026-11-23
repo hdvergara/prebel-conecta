@@ -129,6 +129,60 @@ def test_match_computes_sentiment_even_when_faq_match_fails(make_bot):
     assert result["sentimiento"]["etiqueta"] == "negativo"
 
 
+def test_greeting_with_no_faq_match_returns_saludo_not_fallback(make_bot):
+    """Given a plain greeting that matches no FAQ entry and carries neutral
+    sentiment (the fake pipeline's default).
+    When match() is called.
+    Then it returns the dedicated saludo text, not the cold generic fallback."""
+    bot = make_bot()
+    result = bot.match("buenos dias")
+    assert result["respuesta"] == "Saludo de prueba."
+    assert result["ruta"] is None
+
+
+def test_negative_sentiment_with_no_faq_match_returns_grosero_not_fallback(make_bot):
+    """Given a message with no FAQ match and negative sentiment.
+    When match() is called.
+    Then it returns the dedicated tone-aware grosero text, not the generic
+    fallback -- an out-of-scope message is treated differently depending on
+    whether the person sounds upset."""
+    bot = make_bot({"esto es pesimo y nadie responde": ("1 star", 0.8)})
+    result = bot.match("esto es pesimo y nadie responde")
+    assert result["respuesta"] == "Grosero de prueba."
+    assert result["ruta"] is None
+    assert result["sentimiento"]["etiqueta"] == "negativo"
+
+
+def test_negative_sentiment_takes_priority_over_greeting_wording(make_bot):
+    """Given a message that both opens with a greeting word and carries
+    negative sentiment.
+    When match() is called.
+    Then the tone-aware grosero response wins over the saludo response --
+    rude/frustrated tone is checked first, as a priority, before treating an
+    out-of-scope message as a harmless greeting."""
+    bot = make_bot({"buenos dias esto es un servicio pesimo": ("1 star", 0.9)})
+    result = bot.match("buenos dias esto es un servicio pesimo")
+    assert result["respuesta"] == "Grosero de prueba."
+
+
+def test_high_confidence_match_wins_even_with_negative_sentiment(make_bot):
+    """Given a message that matches a real FAQ entry with high confidence,
+    even though it carries negative sentiment.
+    When match() is called.
+    Then the matched FAQ answer is returned -- tone only changes the
+    out-of-scope/no-match path, never overrides a confident real match."""
+    import torch
+
+    import rrhh_bot
+
+    bot = make_bot({"pregunta uno pero furioso": ("1 star", 0.9)})
+    scores = torch.tensor([[0.90, 0.10, 0.05]])
+    with patch.object(rrhh_bot.util, "cos_sim", return_value=scores):
+        result = bot.match("pregunta uno pero furioso")
+    assert result["respuesta"] == "Respuesta uno"
+    assert result["sentimiento"]["etiqueta"] == "negativo"
+
+
 def test_fixture_entry_with_explicit_null_ruta_stays_null(make_bot):
     """Given a fixture entry with ruta: null in the source JSON (entry 2).
     When it is the matched entry.

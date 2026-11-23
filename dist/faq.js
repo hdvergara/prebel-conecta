@@ -1,5 +1,7 @@
 const faqModel = {
   "fallback": "No tengo una respuesta segura para eso. Escribe a rrhh@tuempresa.com y una persona del equipo te ayuda.",
+  "saludo": "¡Hola! Soy el asistente de RRHH. Puedo ayudarte con vacaciones, nómina, certificados, EPS, créditos de bienestar, prima, cesantías, pensión e incapacidades. ¿Qué necesitas?",
+  "grosero": "Entiendo que esto te tenga así, y quiero ayudarte. Cuéntame en pocas palabras qué necesitas (p. ej. vacaciones, nómina, un certificado), o escribe directamente a rrhh@tuempresa.com para que una persona del equipo te atienda.",
   "faq": [
     {
       "preguntas": [
