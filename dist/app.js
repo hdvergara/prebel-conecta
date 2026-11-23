@@ -336,16 +336,32 @@ $('balance').textContent=available();suggestions();route();
 try {
   // Primera visita (sin perfil guardado): la demo igual arranca mostrando a
   // Valentina para no bloquear la página (el <dialog> modal sí bloquea, por
-  // eso este aviso no lo usa), pero se lo decimos explícitamente en vez de
-  // asumirlo en silencio, y dejamos elegir otro perfil ahí mismo.
+  // eso este aviso no lo usa), pero pedimos la identidad explícitamente --
+  // al menos el número de documento -- en vez de asumirla en silencio.
+  // Omitir sigue siendo posible (es una demo, no un login real) y el
+  // selector "Perfil de demo" de arriba también sigue funcionando.
   if (!localStorage.getItem('perfil-demo')) {
     const aviso = document.createElement('p');
     aviso.id = 'perfil-aviso';
     aviso.className = 'status';
     aviso.setAttribute('role', 'status');
-    aviso.innerHTML = 'Por ahora se muestra con <b>Valentina Ruiz</b>. Elige tu perfil en <b>Perfil de demo</b>, arriba, si prefieres otro. ' +
-      '<button class="chip" id="perfil-aviso-cerrar">Entendido</button>';
+    aviso.innerHTML =
+      'Para identificarte en la demo, escribe tu número de documento. Mientras tanto se muestra con <b>Valentina Ruiz</b>; también puedes elegir tu perfil en <b>Perfil de demo</b>, arriba.<br>' +
+      '<input id="perfil-aviso-id" type="text" inputmode="numeric" placeholder="Número de documento" aria-label="Número de documento"> ' +
+      '<button class="chip" id="perfil-aviso-entrar">Entrar</button> ' +
+      '<button class="chip" id="perfil-aviso-cerrar">Omitir</button>' +
+      '<span id="perfil-aviso-error" class="error" role="alert"></span><br>' +
+      '<small class="muted">Documentos de prueba: '+catalogo.personas.map(p=>p.numero_documento+' ('+p.nombre.split(' ')[0]+')').join(', ')+'.</small>';
     document.querySelector('main').prepend(aviso);
+    const identificar = () => {
+      const valor = $('perfil-aviso-id').value.trim();
+      const encontrada = catalogo.personas.find(p => p.numero_documento === valor);
+      if (!encontrada) { $('perfil-aviso-error').textContent = 'No encontramos ese número de documento en la demo.'; return; }
+      try { localStorage.setItem('perfil-demo', encontrada.id); } catch {}
+      location.reload();
+    };
+    $('perfil-aviso-entrar').onclick = identificar;
+    $('perfil-aviso-id').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); identificar(); } };
     $('perfil-aviso-cerrar').onclick = () => aviso.remove();
   }
 } catch {}
