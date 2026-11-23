@@ -280,9 +280,11 @@ npx playwright test
 ```
 
 Cada corrida deja un dashboard HTML en `e2e/playwright-report/` (resultado de
-cada prueba, con sus trazas y capturas si falla). Para abrirlo:
+cada prueba, con sus trazas y capturas si falla). Para abrirlo (desde
+`e2e/` -- `show-report` busca `playwright-report/` en el directorio actual):
 
 ```powershell
+cd e2e
 npx playwright show-report
 ```
 
