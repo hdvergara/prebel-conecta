@@ -101,7 +101,7 @@ python model/entrenar.py
 ## Generar frases nuevas con un motor de IA (`--augmentar`)
 
 ```powershell
-python model/entrenar.py --augmentar --motor <ollama|openai|claude|gemini> [--modelo <nombre>]
+python model/entrenar.py --augmentar --motor <ollama|openai|claude|gemini|local> [--modelo <nombre>]
 ```
 
 Pide al motor elegido 3 formas adicionales de preguntar cada tema del FAQ, y
@@ -117,6 +117,15 @@ obligatorio y el resto del script (caché + calibración) funciona igual sin
 | `openai` | API de OpenAI | `OPENAI_API_KEY` | platform.openai.com | `gpt-4o-mini` |
 | `claude` | API de Anthropic (Claude) | `ANTHROPIC_API_KEY` | console.anthropic.com | `claude-haiku-5-5` |
 | `gemini` | API de Google (Gemini) | `GEMINI_API_KEY` (o `GOOGLE_API_KEY`) | aistudio.google.com | `gemini-2.0-flash` |
+| `local` | Parafraseador pequeño, local, sin clave ni modelo de chat | Ninguna | Se descarga solo de Hugging Face (~300 MB) | `p-serna/mt5-small-spanish-paraphraser` |
+
+**`local` es de menor calidad que los demás** -- es un modelo de paráfrasis,
+no de chat, y a veces corrompe una palabra de dominio (ver
+[`MODEL_TUNING.md`](MODEL_TUNING.md) para el detalle). Sus sugerencias pasan
+primero por un filtro automático (descarta las que no comparten ninguna
+palabra clave con la pregunta original) antes de imprimirse, pero eso reduce
+el riesgo, no lo elimina -- revísalas con más cuidado que las de un motor de
+chat antes de añadirlas a `faq_rrhh.json`.
 
 **"ChatGPT" y "Codex" no son motores aparte**: ambos son nombres de producto
 sobre la misma API de OpenAI (`--motor openai`); no existe una API pública

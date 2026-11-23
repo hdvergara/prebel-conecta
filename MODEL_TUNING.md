@@ -1,14 +1,19 @@
-# Ajuste de variancia del FAQ: ¿modelo de paráfrasis local?
+# Ajuste de variancia del FAQ: modelo de paráfrasis local
 
-Este documento registra una exploración puntual, no una decisión tomada: si
-vale la pena **expandir la variancia de frases** del FAQ (más formas de
-preguntar cada tema) usando un modelo de paráfrasis **pequeño y local**, en
-vez de depender siempre de Ollama o de una API paga (`entrenar.py
---augmentar`, ver `MODEL_TRAINING.md`). La motivación de fondo es la misma
-de siempre en este proyecto: capas baratas primero, motor pago solo cuando
-de verdad hace falta -- aquí, específicamente, evitar que generar más
-variancia de entrenamiento dependa de un modelo de chat completo (Ollama) o
-de una cuenta paga, si un modelo chico y gratuito alcanza.
+Este documento registra una exploración de si vale la pena **expandir la
+variancia de frases** del FAQ (más formas de preguntar cada tema) usando un
+modelo de paráfrasis **pequeño y local**, en vez de depender siempre de
+Ollama o de una API paga (`entrenar.py --augmentar`, ver
+`MODEL_TRAINING.md`). La motivación de fondo es la misma de siempre en este
+proyecto: capas baratas primero, motor pago solo cuando de verdad hace falta
+-- aquí, específicamente, evitar que generar más variancia de entrenamiento
+dependa de un modelo de chat completo (Ollama) o de una cuenta paga, si un
+modelo chico y gratuito alcanza.
+
+**Estado: implementado como `--motor local`** (ver la última sección). La
+exploración de abajo -- probar a ciegas, comparar candidatos, aceptar que
+ninguno es confiable sin filtro -- es la razón de las decisiones de diseño
+de esa implementación, no solo historia.
 
 ## Candidatos considerados
 
@@ -135,34 +140,63 @@ oración, sinónimos, registro distinto) -- un paráfrasis local pequeño no
 los reemplaza, como mucho los complementa para variantes triviales y
 gratuitas.
 
-## Si se decide usarlo: cómo encajaría en `entrenar.py`
+## Cómo quedó implementado
 
-No implementado todavía -- queda pendiente de que se confirme que vale la
-pena, dado lo anterior. Si se decide seguir adelante:
+`entrenar.py` trata `local` como un motor aparte en `sugerir_frases()`
+(`_sugerir_local()`), con su propio camino de código -- no reusa
+`MOTORES[motor]["fn"]`, porque un modelo de paráfrasis no es de chat: toma
+la pregunta original directamente y genera por *beam search*
+(`num_return_sequences`), no texto libre a partir de un prompt.
 
-- Los 4 motores actuales (`MOTORES` en `entrenar.py`) comparten una interfaz
-  de **chat**: `fn(prompt, modelo) -> texto`, donde el prompt ya incluye la
-  instrucción completa ("Genera 3 formas distintas de preguntar..."). Un
-  modelo de paráfrasis local no es de chat: toma la pregunta original
-  directamente y genera por *beam search* (`num_return_sequences`), no por
-  texto libre. Encajaría como un motor aparte en `sugerir_frases()` (p. ej.
-  `motor == "local"`), con su propio camino de código en vez de reusar
-  `MOTORES[motor]["fn"]`.
-- Antes de imprimir cualquier sugerencia para revisión, filtrarla con una
-  comprobación barata: ¿la paráfrasis conserva al menos una palabra clave
-  del tema original (p. ej. "nómina", "cesantías", "EPS")? Esto habría
-  descartado automáticamente el caso de "opinión" de arriba.
-  **`rrhh_bot.py` ya tiene justo esa lógica** (`_palabras_clave()`,
-  construida esta misma sesión para la revisión sintáctica de preguntas
-  ambiguas) -- reutilizarla aquí evita duplicar la misma heurística dos
-  veces en el proyecto.
-- Requeriría añadir `sentencepiece` a `requirements.txt` (necesario para el
-  tokenizer de mT5; no hacía falta hasta ahora porque `rrhh_bot.py` no usa
-  ningún modelo basado en SentencePiece).
-- El modelo (`p-serna/mt5-small-spanish-paraphraser`, ~300 MB) se
-  descargaría y cachearía igual que los otros dos modelos preentrenados del
-  proyecto (ver "Primera vez" en `MODEL_TRAINING.md`) -- ninguna descarga ni
-  dependencia nueva más allá de `sentencepiece`.
+Cada candidata generada se filtra antes de imprimirse para revisión:
+se descarta si no comparte **ninguna** palabra clave con la pregunta
+original, reutilizando `_palabras_clave()` de `rrhh_bot.py` (la misma
+lógica ya construida esta sesión para la revisión sintáctica de preguntas
+ambiguas, en vez de duplicarla). Esto habría descartado automáticamente el
+caso de "opinión" de arriba -- y, en la corrida real de abajo, lo hizo.
+
+Se añadió `sentencepiece` a `requirements.txt` (necesario para el tokenizer
+de mT5). El modelo (~300 MB) se descarga y cachea igual que los otros dos
+modelos preentrenados del proyecto (ver "Primera vez" en
+`MODEL_TRAINING.md`) -- ninguna dependencia nueva más allá de
+`sentencepiece`, nada de Ollama ni cuenta paga.
+
+### Resultado de la primera corrida real (`--augmentar --motor local`)
+
+El filtro funcionó para el caso que lo motivó: de las 3 variantes generadas
+para "¿Cuándo pagan la nómina?", las 2 que decían "opinión" en vez de
+"nómina" se descartaron; sobrevivió 1, aunque mezclada ("¿Cuándo puedo pagar
+la opinión sobre la nomina?") -- conserva la palabra clave, pero la frase
+sigue sin tener sentido. El filtro atrapa la sustitución completa de la
+palabra de dominio, no cualquier corrupción -- exactamente la limitación ya
+anotada arriba, confirmada en uso real.
+
+También salieron casos nuevos que el filtro no estaba pensado para atrapar:
+
+- Para EPS, el modelo generó `"¿Cómo puedo convertirme en un familiar en mi
+  EP?"` -- cambia el verbo completo ("incluyo" por "convertirme en", un
+  significado distinto) pero sobrevive el filtro porque comparte la palabra
+  "familiar" con el tema original. El filtro revisa sustantivos de dominio
+  compartidos, no que el verbo/acción siga siendo el mismo.
+- Para vacantes internas, alucinó un país: `"¿Hay vacantes internas en la
+  India?"` -- nada en la pregunta original sugiere eso.
+
+Confirma lo ya dicho: el filtro reduce el riesgo de corrupción obvia, no lo
+elimina. Sigue haciendo falta revisar cada sugerencia antes de añadirla a
+`faq_rrhh.json` -- con más cuidado que con un motor de chat.
+
+### Hallazgo aparte, no relacionado con el parafraseador
+
+Esa misma corrida recalibró el umbral contra el `faq_rrhh.json` actual (47
+frases, creció desde las 45 de antes por las frases de saldo de vacaciones
+añadidas esta sesión) y reportó superposición entre temas: peor similitud
+dentro de un mismo tema 0.279, peor similitud entre temas distintos 0.902,
+umbral sugerido 0.59 (por debajo del `THRESHOLD` actual de 0.65). Es un
+hallazgo real de "correr el entrenamiento de nuevo", pero **no se tocó**
+`THRESHOLD` ni se investigó cuáles temas se superponen -- eso es una
+decisión de quien revise el resultado (ver `CONSTITUTION.md` y la sección
+"Qué hace `entrenar.py`" de `MODEL_TRAINING.md`), no algo para resolver sin
+que se pida.
 
 ## Reproducir esta prueba
 

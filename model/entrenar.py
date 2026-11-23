@@ -21,9 +21,12 @@ es nuestro:
 Con --augmentar además pide a un motor de IA formas adicionales de preguntar
 cada tema, para que una persona las revise antes de añadirlas a faq_rrhh.json.
 Cualquier desarrollador o ingeniero de IA puede usar el motor que tenga a la
-mano -- Ollama (local, sin clave), OpenAI, Claude o Gemini -- con --motor.
-Ver MODEL_TRAINING.md para el detalle de cada uno y cómo configurar su clave.
-Es opcional: sin el motor elegido disponible, el resto del script funciona igual.
+mano -- Ollama (local, sin clave), OpenAI, Claude, Gemini, o un parafraseador
+local pequeño que no necesita cuenta ni modelo de chat -- con --motor. Ver
+MODEL_TRAINING.md (motores de chat) y MODEL_TUNING.md (el parafraseador
+local, por qué se filtran sus sugerencias) para el detalle de cada uno y
+cómo configurar su clave. Es opcional: sin el motor elegido disponible, el
+resto del script funciona igual.
 
 Uso (PowerShell):
     python model/entrenar.py
@@ -32,6 +35,7 @@ Uso (PowerShell):
     python model/entrenar.py --augmentar --motor claude --modelo claude-haiku-5-5
     python model/entrenar.py --augmentar --motor openai --modelo gpt-4o-mini
     python model/entrenar.py --augmentar --motor gemini --modelo gemini-2.0-flash
+    python model/entrenar.py --augmentar --motor local
 """
 import argparse
 import json
@@ -44,7 +48,7 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline
 
-from rrhh_bot import MODEL_NAME, SENTIMENT_MODEL
+from rrhh_bot import MODEL_NAME, SENTIMENT_MODEL, _palabras_clave
 
 BASE = Path(__file__).parent
 FAQ_PATH = BASE / "faq_rrhh.json"
@@ -109,13 +113,70 @@ MOTORES = {
     "openai": {"fn": _pedir_openai, "modelo_por_defecto": "gpt-4o-mini", "clave_env": "OPENAI_API_KEY"},
     "claude": {"fn": _pedir_claude, "modelo_por_defecto": "claude-haiku-5-5", "clave_env": "ANTHROPIC_API_KEY"},
     "gemini": {"fn": _pedir_gemini, "modelo_por_defecto": "gemini-2.0-flash", "clave_env": "GEMINI_API_KEY"},
+    # Sin cuenta ni modelo de chat -- un modelo pequeño de paráfrasis en
+    # español, local. Más barato y rápido que los de arriba, pero de menor
+    # calidad: filtra sus propias sugerencias (ver _sugerir_local) y de
+    # todas formas sigue pidiendo revisión humana. Detalle y por qué se
+    # eligió este modelo en concreto: MODEL_TUNING.md.
+    "local": {"fn": None, "modelo_por_defecto": "p-serna/mt5-small-spanish-paraphraser", "clave_env": None},
 }
+
+_PARAFRASEADORES_LOCALES = {}  # modelo -> (tokenizer, modelo), cargado una sola vez por ejecución
+
+
+def _cargar_parafraseador_local(modelo):
+    if modelo not in _PARAFRASEADORES_LOCALES:
+        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+        print(f"    (cargando parafraseador local {modelo}...)")
+        tokenizer = AutoTokenizer.from_pretrained(modelo)
+        modelo_cargado = AutoModelForSeq2SeqLM.from_pretrained(modelo)
+        _PARAFRASEADORES_LOCALES[modelo] = (tokenizer, modelo_cargado)
+    return _PARAFRASEADORES_LOCALES[modelo]
+
+
+def _sugerir_local(tema, modelo, n=3):
+    """Genera paráfrasis de `tema` con un modelo de paráfrasis local (no de
+    chat): sin prompt, por beam search directo sobre el texto.
+
+    MODEL_TUNING.md documenta un problema real de este tipo de modelo en
+    esta máquina: a veces sustituye una palabra de dominio (p. ej. "nómina")
+    por otra más común en sus propios datos de entrenamiento, cambiando el
+    sentido de la pregunta sin que se note a simple vista. Por eso cada
+    candidata se descarta si no comparte ninguna palabra clave con el tema
+    original (reutilizando _palabras_clave de rrhh_bot.py, la misma lógica
+    usada ahí para la revisión sintáctica) -- un filtro automático barato,
+    no un sustituto de la revisión humana que de todas formas sigue
+    haciendo falta antes de tocar faq_rrhh.json."""
+    tokenizer, modelo_cargado = _cargar_parafraseador_local(modelo)
+    entrada = tokenizer(tema, return_tensors="pt", truncation=True)
+    salida = modelo_cargado.generate(
+        **entrada, max_length=64, num_beams=5, num_return_sequences=n + 2,
+        no_repeat_ngram_size=2, early_stopping=True,
+    )
+    candidatas = [tokenizer.decode(s, skip_special_tokens=True).strip() for s in salida]
+
+    palabras_tema = _palabras_clave(tema)
+    sugeridas, vistas = [], {tema.strip().lower()}
+    for candidata in candidatas:
+        clave = candidata.lower()
+        if clave in vistas:
+            continue
+        vistas.add(clave)
+        if palabras_tema and not (palabras_tema & _palabras_clave(candidata)):
+            continue  # probable corrupción de una palabra de dominio -- se descarta sin avisar
+        sugeridas.append(candidata)
+        if len(sugeridas) == n:
+            break
+    return sugeridas
 
 
 def sugerir_frases(tema, motor, modelo, n=3):
-    """Pide al motor de IA elegido formas adicionales de preguntar `tema`.
+    """Pide al motor elegido formas adicionales de preguntar `tema`.
     Devuelve una lista de strings para revisión manual; no escribe nada en
     faq_rrhh.json ni en ningún otro archivo del repositorio."""
+    if motor == "local":
+        return _sugerir_local(tema, modelo, n)
     prompt = (
         f"Genera {n} formas distintas de preguntar lo siguiente en español de "
         f'Colombia, una por línea, sin numerar ni explicar nada más: "{tema}"'
@@ -180,7 +241,7 @@ def main():
                 try:
                     for sugerida in sugerir_frases(tema, args.motor, modelo):
                         print(f"    {sugerida}")
-                except (urllib.error.URLError, TimeoutError, RuntimeError, KeyError) as e:
+                except (urllib.error.URLError, TimeoutError, RuntimeError, KeyError, OSError, ImportError) as e:
                     print(f"    (no se pudo consultar {args.motor}: {e})")
             print()
 
