@@ -95,6 +95,98 @@
       }
     },
     {
+      "id": "b13",
+      "name": "Preguntar al modelo FAQ",
+      "notes": "Tier 1 (ML) del encadenamiento Predictivo -> ML -> Agentic (ver CONSTITUTION.md y el README raíz del repo): intenta primero con el modelo semántico de model/rrhh_api.py -- elige una respuesta ya escrita del FAQ ficticio, en menos de 1 s -- antes de gastar el RAG+LLM de abajo (Tier 2, ~20 s, documentos reales). Corre contenerizado en este mismo servidor (ver Dockerfile en la raíz del repo), en la red privada de Docker -- nunca expuesto al público, solo n8n le habla. onError=continueErrorOutput: si no responde (apagado, lento, red), se sigue de largo al RAG sin bloquear nada -- mismo principio de resiliencia que R2 en CONSTITUTION.md, ahora entre sistemas.",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueErrorOutput",
+      "position": [
+        660,
+        520
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://prebel-rrhh-api:5000/reply",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.pregunta }) }}",
+        "options": {
+          "timeout": 5000
+        }
+      }
+    },
+    {
+      "id": "b14",
+      "name": "¿Hay respuesta segura del FAQ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        520
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "faq1",
+              "leftValue": "={{ $json.confianza }}",
+              "rightValue": 0.65,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b15",
+      "name": "Responder con FAQ",
+      "notes": "Tier 1 (ML): respuesta elegida por model/rrhh_bot.py, no escrita por una IA generativa -- por eso NO lleva la línea de Fuente ni el aviso de IA que sí lleva el Tier 2 (ver 'Agregar fuente y aviso'): decirlo ahí sería atribuirle a una IA generativa un texto que en realidad es una respuesta fija ya elegida por un clasificador, no redactada.",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1100,
+        520
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "faq3",
+              "name": "respuesta",
+              "type": "string",
+              "value": "={{ $json.reply }}"
+            },
+            {
+              "id": "faq4",
+              "name": "tipo",
+              "type": "string",
+              "value": "respuesta_faq"
+            },
+            {
+              "id": "faq5",
+              "name": "confianza",
+              "type": "number",
+              "value": "={{ $json.confianza }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
       "id": "b4",
       "name": "Embedding de la pregunta",
       "notes": "Why HTTP: el nodo 'Embeddings Ollama' solo funciona como sub-nodo de un vector store; aquí necesitamos el vector suelto para compararlo con la Data Table. Ollama local no usa credencial.",
@@ -356,7 +448,7 @@
         "width": 2260,
         "height": 420,
         "color": 7,
-        "content": "## Prebel – Cerebro (IA)\n**Qué hace:** recibe una pregunta de un empleado y devuelve la respuesta lista para enviar por WhatsApp, usando **solo** los documentos oficiales de Prebel. No sabe de qué puerta viene la pregunta: lo usan igual *Prebel – Puerta Emulador* y *Prebel – Puerta Evolution* (por eso la comparación entre puertas es justa).\n\n**Cómo funciona (analogía):** es como un bibliotecario. Primero busca en el fichero las 2 o 3 fichas que más se parecen a la pregunta y solo después redacta la respuesta mirando esas fichas. Si ninguna ficha se parece, dice que no tiene esa información en vez de inventar.\n\n**Piezas:**\n- Fichero: Data Table **prebel_kb** (89 fichas de 4 documentos). Se regenera con `scripts/ingesta.py` + `scripts/cargar_kb.py` del repositorio.\n- *Embeddings* (convertir texto en coordenadas para comparar significados): modelo `embeddinggemma` en el Ollama del servidor.\n- Redacción: modelo `gemma4:e2b` en el mismo Ollama (desde el 2026-11-23; antes `gemma4:e4b`, que sigue instalado y es el doble de lento). Los documentos **no salen del servidor**.\n\n⏱️ Saludo o \"no disponible\": 1–3 s. Respuesta con IA: ~20–26 s con `gemma4:e2b` (sin tarjeta gráfica, la IA escribe ~14 palabras por segundo)."
+        "content": "## Prebel – Cerebro (IA)\n**Qué hace:** recibe una pregunta de un empleado y devuelve la respuesta lista para enviar por WhatsApp. No sabe de qué puerta viene la pregunta: lo usan igual *Prebel – Puerta Emulador*, *Prebel – Puerta Evolution* y *Prebel – Puerta Web* (por eso la comparación entre puertas es justa).\n\n**Cadena de 3 niveles (Predictivo → ML → Agentic, ver CONSTITUTION.md):** barato/rápido primero, solo se escala al siguiente nivel si el anterior no tiene una respuesta segura.\n1. *Nivel 0, Predictivo:* **Detectar saludo (lista única)**, instantáneo, sin IA.\n2. *Nivel 1, ML:* **Preguntar al modelo FAQ** -- model/rrhh_api.py, < 1 s, responde del FAQ ficticio del repositorio si tiene confianza ≥ 0,65.\n3. *Nivel 2, Agentic:* si el nivel 1 no respondió seguro (o no respondió del todo), sigue este RAG: busca en el fichero las 2 o 3 fichas que más se parecen a la pregunta y **solo después** redacta la respuesta mirando esas fichas, usando los documentos oficiales de Prebel. Si ninguna ficha se parece, dice que no tiene esa información en vez de inventar.\n\n**Piezas del Nivel 2:**\n- Fichero: Data Table **prebel_kb** (89 fichas de 4 documentos). Se regenera con `scripts/ingesta.py` + `scripts/cargar_kb.py` del repositorio.\n- *Embeddings* (convertir texto en coordenadas para comparar significados): modelo `embeddinggemma` en el Ollama del servidor.\n- Redacción: modelo `gemma4:e2b` en el mismo Ollama (desde el 2026-11-23; antes `gemma4:e4b`, que sigue instalado y es el doble de lento). Los documentos **no salen del servidor**.\n\n⏱️ Saludo, FAQ (Nivel 1) o \"no disponible\": 1–3 s. Respuesta con IA (Nivel 2): ~20–26 s con `gemma4:e2b` (sin tarjeta gráfica, la IA escribe ~14 palabras por segundo)."
       }
     },
     {
@@ -372,7 +464,7 @@
         "width": 2260,
         "height": 880,
         "color": 4,
-        "content": "### Paso a paso\n1. **Recibir pregunta:** entrada del sub-flujo (`pregunta`, `canal` y `modo`).\n2. **Detectar saludo (lista única):** aquí vive la **única** lista de saludos del proyecto (\"hola\", \"menú\", \"ayuda\"…). Si agregas un saludo, hazlo solo en este nodo.\n3. **¿Solo clasificar?** Las puertas llaman primero con `modo = clasificar` para saber si deben enviar el aviso \"buscando\". En ese caso el cerebro responde al instante `esSaludo: sí/no` (**Devolver clasificación**) y no busca nada.\n4. **¿Es saludo o menú?** Sí → **Responder menú** al instante, sin IA.\n5. **Embedding de la pregunta:** convierte la pregunta en coordenadas (~0,4 s).\n6. **Leer fichas + Buscar fichas parecidas:** compara la pregunta con las 89 fichas y elige hasta 3 con puntaje ≥ 0,30 (máximo ~2.400 caracteres, para que la IA no tarde de más).\n7. **¿Hay fichas relevantes?** Si no → **Responder no disponible** (mensaje oficial de Prebel), sin gastar IA.\n8. **Redactar respuesta con IA:** la IA recibe las reglas de Prebel (tono, no inventar, formato WhatsApp) + las fichas + la pregunta.\n9. **Agregar fuente y aviso:** añade *Fuente: documento › sección* y el aviso de que es un asistente de IA.\n10. Si Ollama falla → **Responder con disculpa** (nunca se queda callado)."
+        "content": "### Paso a paso\n1. **Recibir pregunta:** entrada del sub-flujo (`pregunta`, `canal` y `modo`).\n2. **Detectar saludo (lista única):** aquí vive la **única** lista de saludos del proyecto (\"hola\", \"menú\", \"ayuda\"…). Si agregas un saludo, hazlo solo en este nodo.\n3. **¿Solo clasificar?** Las puertas llaman primero con `modo = clasificar` para saber si deben enviar el aviso \"buscando\". En ese caso el cerebro responde al instante `esSaludo: sí/no` (**Devolver clasificación**) y no busca nada.\n4. **¿Es saludo o menú?** Sí → **Responder menú** al instante, sin IA.\n5. **Preguntar al modelo FAQ** (Nivel 1, nuevo): le pregunta a model/rrhh_api.py (contenerizado en este servidor, ver Dockerfile del repo). `onError=continueErrorOutput`: si no responde, sigue directo a **Embedding de la pregunta** sin bloquear nada.\n6. **¿Hay respuesta segura del FAQ?** Confianza ≥ 0,65 → **Responder con FAQ** al instante, sin gastar el RAG+LLM de abajo. Si no → sigue al Nivel 2 (RAG), igual que si el paso 5 falló.\n7. **Embedding de la pregunta:** convierte la pregunta en coordenadas (~0,4 s).\n8. **Leer fichas + Buscar fichas parecidas:** compara la pregunta con las 89 fichas y elige hasta 3 con puntaje ≥ 0,30 (máximo ~2.400 caracteres, para que la IA no tarde de más).\n9. **¿Hay fichas relevantes?** Si no → **Responder no disponible** (mensaje oficial de Prebel), sin gastar IA.\n10. **Redactar respuesta con IA:** la IA recibe las reglas de Prebel (tono, no inventar, formato WhatsApp) + las fichas + la pregunta.\n11. **Agregar fuente y aviso:** añade *Fuente: documento › sección* y el aviso de que es un asistente de IA. (**Responder con FAQ**, en el paso 6, nunca agrega esto -- no es texto redactado por una IA.)\n12. Si Ollama falla → **Responder con disculpa** (nunca se queda callado)."
       }
     },
     {
@@ -471,6 +563,42 @@
         [
           {
             "node": "Responder menú",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preguntar al modelo FAQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preguntar al modelo FAQ": {
+      "main": [
+        [
+          {
+            "node": "¿Hay respuesta segura del FAQ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Embedding de la pregunta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay respuesta segura del FAQ?": {
+      "main": [
+        [
+          {
+            "node": "Responder con FAQ",
             "type": "main",
             "index": 0
           }

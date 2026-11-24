@@ -153,14 +153,29 @@ apuntar a un entorno de pruebas real de Meta más adelante, solo hay que
 cambiar esos valores (y el `WA_GRAPH_URL` a `https://graph.facebook.com`); el
 código de `whatsapp_service.py` no cambia.
 
-## Canal de WhatsApp con n8n (opcional, servidor de pruebas)
+## Canal de WhatsApp con n8n + cadena de 3 niveles (opcional, servidor de pruebas)
 
-`n8n/` es otro canal de WhatsApp, independiente de `model/`: tres flujos de
-n8n que responden con IA local (Ollama), usando los documentos oficiales de
-Prebel como única fuente (RAG). Hay un "cerebro" compartido y dos "puertas":
-el emulador de WhatsApp Cloud API y Evolution API (WhatsApp real). No lee
-`model/faq_rrhh.json` ni cambia nada de `dist/` o `model/`. Qué hace, cómo se
-importa y qué datos quedan fuera de git está en [`n8n/README.md`](n8n/README.md).
+`n8n/` es un canal adicional (WhatsApp y, ahora, una burbuja de chat en el
+portal) que corre en el servidor del equipo: un "cerebro" compartido y tres
+"puertas" (emulador de WhatsApp Cloud API, Evolution API para WhatsApp real,
+y el portal vía una burbuja de chat).
+
+El cerebro ya no es un sistema aparte: antes de redactar una respuesta con
+IA a partir de los documentos oficiales de Prebel (RAG con Ollama, el
+"Nivel 2, Agentic"), le pregunta primero a `model/rrhh_api.py` (el mismo
+modelo que usa el portal) si tiene una respuesta segura del FAQ ficticio
+(el "Nivel 1, ML", < 1 s) — y solo si no la tiene, sigue con el RAG. Junto
+con la búsqueda por palabras clave del portal ("Nivel 0, Predictivo"), los
+tres niveles forman una sola cadena: barato y rápido primero, la IA que
+redacta (más lenta, ~20 s) solo cuando hace falta. Ver "El encadenamiento de
+3 niveles" en `CONSTITUTION.md`.
+
+Para que el cerebro (en el servidor del equipo) pueda llamar a
+`model/rrhh_api.py`, este se empaqueta con el `Dockerfile` de esta carpeta y
+se despliega junto a n8n y Ollama, en su misma red privada — nunca expuesto
+al público. Qué hace cada flujo, cómo se importa, cómo desplegar ese
+contenedor y qué datos quedan fuera de git está en
+[`n8n/README.md`](n8n/README.md).
 
 ## Estructura
 
@@ -173,8 +188,12 @@ importa y qué datos quedan fuera de git está en [`n8n/README.md`](n8n/README.m
   fuente de los datos de persona — `catalogo.py` solo los lee y exporta) y
   `entrenar.py` (cachea embeddings y recalibra el umbral de similitud — ver
   [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
-- `n8n/` — canal de WhatsApp en n8n (flujos exportados + scripts de la base de
-  conocimiento). Ver [`n8n/README.md`](n8n/README.md).
+- `n8n/` — canal de WhatsApp y burbuja de chat del portal en n8n (flujos
+  exportados + scripts de la base de conocimiento). Ver
+  [`n8n/README.md`](n8n/README.md).
+- `Dockerfile` — empaqueta `model/rrhh_api.py` para desplegarlo junto a n8n
+  y Ollama (Nivel 1 de la cadena de 3 niveles, ver más abajo); no se usa
+  para correr el portal localmente, eso sigue siendo `iniciar-conecta.ps1`.
 - `catalogo.py` — escribe `dist/catalogo.js` y `dist/faq.js` desde
   `model/empleados_mock.json` y `model/faq_rrhh.json`.
 - `iniciar-conecta.ps1` — levanta la API y el sitio con un solo comando.
