@@ -69,10 +69,33 @@ def test_reply_with_missing_body_is_treated_as_empty_text(client):
 
 
 def test_reply_response_carries_a_cors_header(client):
-    """Given flask-cors is configured globally on the app.
+    """Given the default local host (RRHH_API_HOST unset, so 127.0.0.1).
     When /reply responds to a cross-origin request.
     Then an Access-Control-Allow-Origin header is present, so the GitHub
-    Pages-hosted frontend is allowed to read the response."""
+    Pages-hosted frontend (a browser) is allowed to read the response."""
     resp = client.post("/reply", json={"text": "hola"},
                         headers={"Origin": "https://hdvergara.github.io"})
     assert "Access-Control-Allow-Origin" in resp.headers
+
+
+def test_reply_response_has_no_cors_header_when_containerized(monkeypatch):
+    """Given RRHH_API_HOST is set to something other than 127.0.0.1 (the
+    containerized case, reachable only from n8n's server-side HTTP Request
+    node -- never a browser, which is the only client CORS headers are for).
+    When /reply responds to a cross-origin request.
+    Then no Access-Control-Allow-Origin header is present: if this instance
+    were ever exposed beyond its intended private network by mistake, it
+    wouldn't hand out permissive CORS headers a browser could exploit."""
+    import rrhh_bot
+
+    monkeypatch.setenv("RRHH_API_HOST", "0.0.0.0")
+    sys.modules.pop("rrhh_api", None)
+    with patch.object(rrhh_bot, "SentenceTransformer", return_value=FakeSentenceTransformer()), \
+         patch.object(rrhh_bot, "pipeline", return_value=FakeSentimentPipeline()):
+        import rrhh_api
+    client = rrhh_api.app.test_client()
+
+    resp = client.post("/reply", json={"text": "hola"},
+                        headers={"Origin": "https://evil.example"})
+    assert "Access-Control-Allow-Origin" not in resp.headers
+    sys.modules.pop("rrhh_api", None)

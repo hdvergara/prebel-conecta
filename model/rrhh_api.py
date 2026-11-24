@@ -25,7 +25,17 @@ from flask_cors import CORS
 from rrhh_bot import RRHHBot
 
 app = Flask(__name__)
-CORS(app)
+RRHH_API_HOST = os.environ.get("RRHH_API_HOST", "127.0.0.1")
+# CORS solo hace falta para el caso local: dist/app.js corre en el
+# navegador del visitante y necesita el encabezado para leer la respuesta
+# entre orígenes. El Cerebro de n8n (Tier 1) es un llamador del lado del
+# servidor, no un navegador -- no respeta ni necesita CORS. Por eso solo se
+# habilita cuando esta instancia escucha en 127.0.0.1 (el caso de siempre):
+# si corre contenerizada (RRHH_API_HOST=0.0.0.0), queda apagado, para que
+# nunca emita encabezados CORS permisivos si alguna vez quedara expuesta
+# por error más allá de la red privada que le indica n8n/README.md.
+if RRHH_API_HOST == "127.0.0.1":
+    CORS(app)
 bot = RRHHBot()
 
 
@@ -42,4 +52,4 @@ def reply():
 
 
 if __name__ == "__main__":
-    app.run(host=os.environ.get("RRHH_API_HOST", "127.0.0.1"), port=5000)
+    app.run(host=RRHH_API_HOST, port=5000)

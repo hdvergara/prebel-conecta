@@ -10,7 +10,7 @@ wrong and must be fixed to match this file, not the other way around.
 
 ## 1. Spec
 
-Prebel Conecta is a **demo HR portal** with two independent layers:
+Prebel Conecta is a **demo HR portal** with four independent layers:
 
 1. **Static layer** (`dist/`) — a zero-build HTML/CSS/JS site. It is published to
    GitHub Pages and MUST be fully usable with no backend running: profile switch,

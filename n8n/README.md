@@ -70,7 +70,7 @@ responder con seguridad.
 | `workflows/04-puerta-web.json` | Puerta para el portal (`dist/`): Chat Trigger de n8n + el mismo cerebro. Ver "Puerta Web" más abajo |
 | `scripts/ingesta.py` | Parte los documentos de Prebel en fichas → `data/kb.json` |
 | `scripts/cargar_kb.py` | Calcula los embeddings y carga las fichas en la Data Table de n8n |
-| `scripts/exportar_flujos.py` | Exporta los tres flujos desde n8n y genera la versión sin datos personales (solo para el servidor CORE-LAB) |
+| `scripts/exportar_flujos.py` | Exporta los flujos desde n8n y genera la versión sin datos personales (solo para el servidor CORE-LAB). **Hoy solo conoce los 3 flujos originales** (su `FLUJOS` tiene sus IDs reales fijos en el código) -- `04-puerta-web.json` todavía no existe en el servidor real del equipo, así que no se puede agregar su ID verdadero hasta crearla allá; mientras tanto, esta puerta se edita a mano en el repositorio |
 
 ## Cómo montarlo en otro n8n
 
