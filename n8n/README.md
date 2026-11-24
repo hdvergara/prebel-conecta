@@ -226,3 +226,45 @@ placeholder de `CHAT_WEBHOOK_URL` en `dist/app.js` con esa URL real. El
 nombre exacto del paquete `@n8n/chat` (CDN, versión del bundle) no se pudo
 verificar contra un Chat Trigger real desde este repositorio -- revísalo
 contra la documentación de `@n8n/chat` al activarla.
+
+## Probar los flujos en un n8n local (sin el servidor del equipo)
+
+Para probar cambios al cerebro o a una puerta antes de importarlos en el
+servidor real, un n8n local con Docker alcanza para validar la lógica (no
+el RAG completo, que necesita el Ollama y la Data Table reales):
+
+```powershell
+docker network create prebel-test-net
+docker run -d --name n8n-test --network prebel-test-net -p 5678:5678 `
+  -v n8n_test_data:/home/node/.n8n n8nio/n8n
+docker run -d --name prebel-rrhh-api --network prebel-test-net prebel-rrhh-api
+```
+
+1. **Importa el cerebro:** `docker cp workflows/03-cerebro-ia.json n8n-test:/tmp/`
+   y `docker exec n8n-test n8n import:workflow --input=/tmp/03-cerebro-ia.json`.
+   Anota el ID que imprime (es nuevo en cada instancia -- no es
+   `FMh0nT4mwTi0x72z`, el del servidor real).
+2. **Credencial de Ollama (placeholder, no necesita funcionar de verdad si
+   solo pruebas el Nivel 0/1):** `n8n import:credentials` con un JSON
+   mínimo `[{"id": "lavzpuOvyjnfq4Gy", "name": "Ollama local (red Coolify)",
+   "type": "ollamaApi", "data": {"baseUrl": "http://localhost:11434"}}]`
+   (mismo `id` que usa el nodo *Modelo Ollama (gemma4)*) -- sin esto, n8n no
+   deja activar el cerebro.
+3. **Importa una puerta** (p. ej. `04-puerta-web.json`, la más simple):
+   antes de importarla, reemplaza el `workflowId.value` de su nodo
+   *Preguntar al cerebro* por el ID nuevo del paso 1.
+4. **Activa ambos** (el cerebro primero, es un sub-flujo):
+   `docker exec n8n-test n8n update:workflow --id=<id> --active=true`.
+5. **Prueba contra el webhook del Chat Trigger:**
+   ```bash
+   curl -X POST http://localhost:5678/webhook/<webhookId>/chat \
+     -H "Content-Type: application/json" \
+     -d '{"chatInput":"cuantas licencias medicas he tomado","sessionId":"x"}'
+   ```
+   Así se confirmó (2026-11-24) que el Nivel 1 responde al instante y sin
+   tocar el Nivel 2 cuando hay confianza, que cae con gracia al Nivel 2 (y
+   de ahí a "Responder con disculpa") si `prebel-rrhh-api` está caído
+   (`docker stop prebel-rrhh-api`), y que se recupera sin reimportar nada
+   al volver a levantarlo.
+
+Limpieza: `docker rm -f n8n-test prebel-rrhh-api && docker network rm prebel-test-net && docker volume rm n8n_test_data`.
