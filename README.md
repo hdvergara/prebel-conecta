@@ -8,6 +8,11 @@ el mismo buscador compara la pregunta con el FAQ usando dos modelos preentrenado
 No es un modelo que redacta respuestas. Elige la entrada del FAQ más parecida, o
 pide escribir a RRHH cuando la similitud no alcanza.
 
+Esta demo tiene varios componentes (portal, capa semántica, dos canales de
+WhatsApp). Para el mapa completo, los requisitos mínimos en conjunto y la
+provisión de cuentas/accesos, ver [`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md).
+Lo de abajo es el detalle de instalar y correr el portal localmente.
+
 ## Qué hace el portal
 
 Datos ficticios, guardados en el navegador (`localStorage`). Los perfiles salen de
@@ -177,6 +182,18 @@ al público. Qué hace cada flujo, cómo se importa, cómo desplegar ese
 contenedor y qué datos quedan fuera de git está en
 [`n8n/README.md`](n8n/README.md).
 
+**Nota técnica — n8n local vs. real para pruebas:** se espera usar tanto
+una instancia real de n8n (la del servidor del equipo) como una local (con
+Docker, imagen oficial [`n8nio/n8n`](https://hub.docker.com/r/n8nio/n8n))
+para probar cambios a estos flujos — **a discreción de quien desarrolla o
+de SDET**, según qué se esté verificando. La local alcanza para validar que
+un flujo importa bien y que el Tier 1/Tier 2 se encadenan correctamente
+(incluido el caso en que el Tier 1 falla y cae con gracia al Tier 2); la
+real es la única forma de validar el RAG completo (Ollama, documentos
+reales) y la entrega real por WhatsApp. Ninguna reemplaza a la otra. Ver
+`SETUP_AND_DEPLOY.md` §4 y la sección "Probar los flujos en un n8n local"
+de [`n8n/README.md`](n8n/README.md) para el procedimiento.
+
 ## Estructura
 
 - `dist/` — sitio estático (HTML, CSS y JS). No tiene paso de compilación.
@@ -216,12 +233,18 @@ contenedor y qué datos quedan fuera de git está en
 | **Git** | Clonar y versionar | `prebel-conecta/` es su propio repositorio, independiente de la carpeta que lo contiene. |
 | Navegador | Abrir la demo | Playwright instala su propio Chromium para los e2e (`npx playwright install`); no usa el navegador del sistema. |
 
-No hace falta Docker, build tools de C/C++, ni GPU. La primera vez que corras la
+No hace falta build tools de C/C++ ni GPU. La primera vez que corras la
 API sí se descargan ~1 GB de pesos de modelo desde Hugging Face (ver más abajo).
 
 Ninguna de estas herramientas hace falta para lo de arriba: Ollama (local) u
 OpenAI/Claude/Gemini (con su clave de API) son **solo** para `entrenar.py
 --augmentar`, que es opcional — ver [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
+Docker tampoco hace falta para correr el portal o la API — es aparte, para
+contenerizar `model/rrhh_api.py` (ver `Dockerfile`) y para probar el canal
+n8n con una instancia local (ver sección **Canal de WhatsApp con n8n** más
+abajo). El detalle completo de requisitos de **todos** los componentes,
+incluida la provisión de cuentas, está en
+[`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md).
 
 ## Setup
 
