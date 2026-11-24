@@ -6,7 +6,11 @@
 # Construir y probar localmente:
 #   docker build -t prebel-rrhh-api .
 #   docker run --rm -p 5000:5000 prebel-rrhh-api
-#   curl -X POST http://localhost:5000/reply -H "Content-Type: application/json" -d "{\"text\":\"¿Cuándo pagan la nómina?\"}"
+#   curl -X POST http://localhost:5000/reply -H "Content-Type: application/json" -d "{\"text\":\"cuantas licencias medicas he tomado\"}"
+#   (si pruebas con tildes/ñ por curl en Windows, usa un cliente que mande
+#   UTF-8 de verdad -- p. ej. python -c "...urllib...": curl -d en
+#   PowerShell/cmd puede mandar la codificación local y corromperlas; no es
+#   un bug del servicio, se confirmó probando ambos caminos.)
 #
 # En el servidor: desplegar en la MISMA red privada de Docker que n8n y
 # Ollama (p. ej. como otro servicio de Coolify), SIN mapear el puerto a una
@@ -14,6 +18,13 @@
 FROM python:3.11-slim
 
 WORKDIR /app
+
+# PyTorch CPU-only primero: la rueda por defecto de PyPI trae CUDA/nvidia/
+# triton empaquetados (~5 GB) que nadie usa aquí -- ni el servidor del
+# equipo (sin GPU, ver n8n/README.md) ni esta imagen. Instalarlo antes deja
+# satisfecho el "torch>=2.2" de requirements.txt, que no vuelve a
+# reinstalarlo con la rueda pesada.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
