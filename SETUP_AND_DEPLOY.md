@@ -5,14 +5,17 @@ conjunto (herramientas y cuentas), y a qué documento ir para el detalle de
 cada uno. Este documento no repite el "cómo" de cada pieza -- eso vive en
 `README.md`, `MODEL_TRAINING.md`, `MODEL_TUNING.md` y `n8n/README.md`, cada
 uno con su propio alcance. Este es el punto de entrada para ver el conjunto
-completo antes de ponerse a trabajar.
+completo antes de ponerse a trabajar. Para **qué camino toma cada
+pregunta** (no el despliegue, sino el flujo en tiempo de ejecución), ver
+[`FLUJOS.md`](FLUJOS.md).
 
 ## 1. Mapa de componentes
 
 | Componente | Qué es | Dónde corre | Documentación |
 |---|---|---|---|
 | Portal estático | `dist/`: HTML/CSS/JS, perfil, trámites, búsqueda por palabras clave | GitHub Pages (público) o cualquier servidor estático local | `README.md` |
-| Capa semántica (Tier 1, ML) | `model/rrhh_api.py` + `model/rrhh_bot.py`: elige una respuesta del FAQ ficticio | PC del operador (`127.0.0.1`), o contenerizado (ver `Dockerfile`) | `README.md`, `MODEL_TRAINING.md` |
+| Capa semántica + orquestador | `model/rrhh_api.py` + `model/rrhh_bot.py` (elige una respuesta del FAQ ficticio) + `model/orquestador.py` (decide predictivo/ML/LLM, 95%/75%) | PC del operador (`127.0.0.1`), o contenerizado (ver `Dockerfile`) | `README.md`, `FLUJOS.md`, `MODEL_TRAINING.md` |
+| Conector LLM (opcional) | `model/conectores.py`: vía MCP, apagado por defecto (`LLM_CONECTOR` sin definir) | Mismo proceso que la capa semántica | `FLUJOS.md` |
 | Entrenamiento/calibración | `model/entrenar.py`: cachea embeddings, calibra el umbral, sugiere variancia nueva | PC del operador (o durante el build del `Dockerfile`) | `MODEL_TRAINING.md` |
 | Exploración de variancia | Modelos de paráfrasis locales probados para `--augmentar` | PC del operador (exploración puntual, documentada) | `MODEL_TUNING.md` |
 | Canal WhatsApp local | `model/whatsapp_service.py`: puente a un entorno compatible con WhatsApp Cloud API | PC del operador + emulador local (`whatsapp-emulator/`, fuera de este repo) | `README.md` (sección "Canal de WhatsApp") |
@@ -88,6 +91,7 @@ n8n local" de [`n8n/README.md`](n8n/README.md).
 
 | Vas a... | Empieza en |
 |---|---|
+| Entender qué camino toma una pregunta según el canal | `FLUJOS.md` |
 | Correr el portal y la API localmente | `README.md` → Setup, Run |
 | Tocar `model/faq_rrhh.json` o recalibrar el modelo | `MODEL_TRAINING.md` |
 | Evaluar variancia/paráfrasis para el FAQ | `MODEL_TUNING.md` |
