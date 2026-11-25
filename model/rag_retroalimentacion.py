@@ -32,13 +32,20 @@ def buscar_similar(modelo, texto: str) -> dict | None:
     try:
         from sentence_transformers import util
 
-        preguntas = [p["pregunta"] for p in pendientes]
+        validas = [
+            p for p in pendientes
+            if isinstance(p, dict) and "pregunta" in p and "respuesta" in p
+        ]
+        if not validas:
+            return None
+
+        preguntas = [p["pregunta"] for p in validas]
         embeddings = modelo.encode(preguntas, convert_to_tensor=True)
         consulta = modelo.encode(texto, convert_to_tensor=True)
         puntajes = util.cos_sim(consulta, embeddings)[0]
         mejor = int(puntajes.argmax())
         if float(puntajes[mejor]) < UMBRAL_RETROALIMENTACION:
             return None
-        return {"respuesta": pendientes[mejor]["respuesta"], "contexto": pendientes[mejor].get("contexto", {})}
+        return {"respuesta": validas[mejor]["respuesta"], "contexto": validas[mejor].get("contexto", {})}
     except Exception:
         return None

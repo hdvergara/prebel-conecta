@@ -20,7 +20,13 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-_DIR_ESTADO = Path(os.environ.get("RETROALIMENTACION_DIR", str(Path(__file__).parent)))
+_dir_env = os.environ.get("RETROALIMENTACION_DIR")
+_DIR_ESTADO = Path(_dir_env) if _dir_env else Path(__file__).parent
+try:
+    _DIR_ESTADO.mkdir(parents=True, exist_ok=True)
+except OSError:
+    # Si no se puede crear, registrar() fallará y el orquestador degradará con gracia.
+    pass
 RUTA = _DIR_ESTADO / "retroalimentacion.json"
 _PLAZO_LOCK = 5.0  # segundos antes de darse por vencido
 
