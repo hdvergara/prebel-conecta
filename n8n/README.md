@@ -33,6 +33,16 @@ Mismo principio que el resto del repositorio (ver CONSTITUTION.md): capas
 baratas/rápidas primero, solo se escala a la siguiente si la anterior no
 tiene una respuesta segura.
 
+> **Nota (reducción primaria del modelo):** lo de abajo describe la cadena
+> **propia de n8n**, que sus tres puertas siguen usando tal cual, sin
+> cambios. Por separado, `model/orquestador.py` orquesta otra cadena
+> equivalente del lado de Python, para el portal y cualquier otro llamador
+> directo de `/reply` -- con sus propios umbrales (`model/arquitectura.json`)
+> y su propio conector LLM intercambiable (`model/conectores.py`). Este
+> mismo Cerebro puede servir como el backend de ese conector (vía MCP)
+> cuando el equipo lo configure así -- ver CONSTITUTION.md R9 -- pero eso es
+> opcional y no cambia nada de lo que sigue en esta sección.
+
 1. **Nivel 0, Predictivo -- saludo o menú** ("hola", "menú", "ayuda"…) →
    responde el menú al instante, sin IA. La lista de saludos vive **solo** en
    el nodo *Detectar saludo (lista única)*. Las puertas la consultan llamando

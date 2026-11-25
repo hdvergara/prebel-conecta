@@ -45,6 +45,51 @@ def test_match_exact_phrasing_returns_the_matched_entry(make_bot):
     assert result["area"] == "area-uno"
 
 
+# Context: 'tipo' discriminates match()'s branches without string-comparing
+# 'respuesta' against bot.fallback/bot.saludo/bot.grosero -- what
+# model/orquestador.py (and anyone else) uses to know which path was taken.
+
+def test_confident_match_has_tipo_confiado(make_bot):
+    """Given a confident embedding match.
+    When match() is called.
+    Then tipo is 'confiado'."""
+    bot = make_bot()
+    assert bot.match("pregunta uno")["tipo"] == "confiado"
+
+
+def test_unrelated_text_has_tipo_fallback(make_bot):
+    """Given text with no FAQ match, no keyword overlap, no greeting, and
+    neutral sentiment.
+    When match() is called.
+    Then tipo is 'fallback'."""
+    bot = make_bot()
+    assert bot.match("un texto que no tiene relacion alguna con las preguntas")["tipo"] == "fallback"
+
+
+def test_greeting_has_tipo_saludo(make_bot):
+    """Given a plain greeting with no FAQ match.
+    When match() is called.
+    Then tipo is 'saludo'."""
+    bot = make_bot()
+    assert bot.match("buenos dias")["tipo"] == "saludo"
+
+
+def test_negative_sentiment_has_tipo_grosero(make_bot):
+    """Given a message with negative sentiment and no FAQ match.
+    When match() is called.
+    Then tipo is 'grosero'."""
+    bot = make_bot({"esto es pesimo y nadie responde": ("1 star", 0.8)})
+    assert bot.match("esto es pesimo y nadie responde")["tipo"] == "grosero"
+
+
+def test_keyword_overlap_without_close_match_has_tipo_acotar(make_bot):
+    """Given keyword overlap with an entry but no close embedding match.
+    When match() is called.
+    Then tipo is 'acotar'."""
+    bot = make_bot()
+    assert bot.match("necesito la variante correcta para mi caso")["tipo"] == "acotar"
+
+
 def test_match_includes_guia_field_when_the_entry_has_one(make_bot):
     """Given a matched entry with an optional 'guia' field -- the actionable
     step on its own, without the referral to "revisa tu perfil" baked into

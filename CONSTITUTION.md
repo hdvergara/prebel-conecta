@@ -19,8 +19,12 @@ Prebel Conecta is a **demo HR portal** with four independent layers:
    static data alone (`dist/catalogo.js`, `dist/faq.js`).
 2. **Semantic layer** (`model/`) — an optional, local-only Flask API
    (`model/rrhh_api.py`) wrapping `RRHHBot` (`model/rrhh_bot.py`): sentence
-   embeddings for FAQ matching (`confianza`) + a pretrained sentiment classifier
-   (`sentimiento`). The static layer calls it opportunistically
+   embeddings for FAQ matching (`confianza`, `tipo`) + a pretrained sentiment
+   classifier (`sentimiento`). `model/orquestador.py` is the engine that
+   decides, for every call to `/reply`, whether that match is confident
+   enough to answer on its own or whether to escalate to the LLM connector
+   (`model/conectores.py`) — see "The three-tier chain" below; Python, not
+   n8n, orchestrates this. The static layer calls `/reply` opportunistically
    (`MODEL_API` fetch with a short timeout) and degrades to the static fallback
    message when it isn't reachable. The semantic layer must never become a hard
    dependency of the static layer.
@@ -38,7 +42,13 @@ Prebel Conecta is a **demo HR portal** with four independent layers:
    Prebel documents (kept local-only, same as `.specs/`) and has a local LLM
    (Ollama) **write** the answer from them, rather than choosing a pre-written
    `faq_rrhh.json` entry. It never runs on the operator's machine and is not
-   covered by this repo's test harness (§3) — see `n8n/README.md`.
+   covered by this repo's test harness (§3) — see `n8n/README.md`. It serves
+   two independent roles, unrelated to each other: (a) its own WhatsApp
+   puertas (`01-puerta-emulador.json`, `02-puerta-evolution.json`) call it
+   directly, exactly as before this section's pivot — unaffected by it; and
+   (b) it is one possible **secondary** backend behind the LLM connector
+   below (reachable over MCP), used only when the team points
+   `model/conectores.py` at it instead of a local or commercial alternative.
 
 Data flow for FAQ content: `model/faq_rrhh.json` (source of truth, `ruta`/`area`
 per entry) → `catalogo.py` generates `dist/faq.js` (static consumer) and feeds
@@ -47,18 +57,27 @@ the same file; don't let them drift into separate copies of the same facts.
 
 ### The three-tier chain (Predictive → ML → Agentic)
 
-Every entry point — the portal, WhatsApp, and the n8n chat bubble — answers
-through the same escalating order, cheapest/fastest first, each tier only
-reached when the one before it couldn't confidently answer:
+`model/orquestador.py` decides this for every call to `/reply` — Python
+orchestrates the chain, not n8n. The two thresholds below are editable data
+(`model/arquitectura.json`), not hardcoded constants:
 
-| Tier | What | Where |
+| Tier | Trigger | What happens |
 |---|---|---|
-| 0 — Predictive | Keyword match, instant, free | `dist/app.js`'s `rank()` (web); the Cerebro's greeting/menu detector (n8n) |
-| 1 — ML | Chosen pre-written FAQ answer, `model/rrhh_bot.py`, <1s, free | `model/rrhh_api.py`'s `/reply`, called directly by the web portal and by n8n's Cerebro (`n8n/workflows/03-cerebro-ia.json`) as its own first step |
-| 2 — Agentic | LLM-composed answer from real documents, ~20s | n8n's Cerebro RAG+Ollama step, reached by WhatsApp and by the portal's gated chat bubble ("Puerta Web") |
+| Predictive | `confianza` (from `RRHHBot.match()`) > `umbral_predictivo` (0.95) | The ML match is trusted as-is, no further step |
+| ML | `umbral_llm` (0.75) ≤ `confianza` ≤ `umbral_predictivo` | The local semantic answer is returned as-is |
+| Agentic (LLM) | `confianza` < `umbral_llm`, **or** the caller asks to continue (`seguir: true` in `/reply`'s body) | Escalates to the active LLM connector (`model/conectores.py`); if it doesn't answer, falls back to the ML answer already computed |
 
-This is why `model/rrhh_api.py` also ships containerized (see `Dockerfile`):
-Tier 1 must be reachable from wherever Tier 2 runs, not just from
+When the LLM connector answers a question the earlier tiers didn't have
+with confidence, that question/answer is queued for manual review
+(`model/retroalimentacion.py`) — never auto-promoted into `faq_rrhh.json`
+(R1/R4 still apply to anything that might end up there).
+
+n8n's Cerebro remains reachable two ways, independent of each other: its own
+WhatsApp puertas call it directly (unaffected by this chain), and it can
+also serve as the LLM connector's backend over MCP (see layer 4 above) —
+in that second role it's what Tier "Agentic" above escalates to, when
+configured. `model/rrhh_api.py` also ships containerized (see `Dockerfile`)
+so it's reachable from wherever a connector backend runs, not just from
 `127.0.0.1`.
 
 ## 2. Railguards
@@ -119,10 +138,21 @@ style preference.
   change touching the three-tier chain above (adding a tier, changing what
   triggers escalation) must keep cheaper/faster tiers tried before
   slower/heavier ones, and every escalation must be a graceful fallthrough,
-  never a hard dependency: Tier 1's HTTP call from the Cerebro uses
-  `onError: continueErrorOutput` specifically so an unreachable Tier 1 falls
-  through to Tier 2 instead of breaking the whole answer — same spirit as
-  R2, now applied across systems, not just within `dist/`.
+  never a hard dependency: `model/orquestador.py` falls back to the ML
+  answer already computed whenever the LLM connector returns `None`
+  (unconfigured, unreachable, or no answer), same as the Cerebro's own
+  `onError: continueErrorOutput` on its WhatsApp-side HTTP calls — same
+  spirit as R2, now applied across systems, not just within `dist/`. The
+  two thresholds live in `model/arquitectura.json`; changing them is editing
+  that data, not this file or the orchestrator's code.
+- **R9 — Layer separation.** The three tiers live in separate modules that
+  never import "downward": `model/rrhh_bot.py` (ML) must never import
+  `model/conectores.py` or `model/orquestador.py` (enforced by
+  `tests/test_arquitectura.py`, not just documented here). The LLM tier is
+  only ever reached through `model/conectores.py`'s `ConectorLLM` interface
+  — no other module calls a specific backend (MCP, n8n, a commercial API)
+  by name. Swapping backends means changing what the connector points to,
+  never touching the orchestrator or the ML layer.
 
 ## 3. Harness
 
