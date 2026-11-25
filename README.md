@@ -284,9 +284,9 @@ Tampoco hace falta nada extra para el conector LLM del orquestador (ver
 `requirements.txt`/`requirements-dev.txt`, y sin la variable de entorno
 `LLM_CONECTOR` configurada, el orquestador nunca intenta usarlo.
 Docker tampoco hace falta para correr el portal o la API — es aparte, para
-contenerizar `model/rrhh_api.py` (ver `Dockerfile`) y para probar el canal
-n8n con una instancia local (ver sección **Canal de WhatsApp con n8n** más
-abajo). El detalle completo de requisitos de **todos** los componentes,
+levantar el monolito contenerizado (`docker-compose.yml`, ver `Dockerfile`)
+y para probar el canal n8n con una instancia local (ver sección **Canal de
+WhatsApp con n8n** más abajo). El detalle completo de requisitos de **todos** los componentes,
 incluida la provisión de cuentas, está en
 [`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md).
 

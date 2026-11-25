@@ -94,6 +94,7 @@ n8n local" de [`n8n/README.md`](n8n/README.md).
 |---|---|
 | Entender qué camino toma una pregunta según el canal | `FLUJOS.md` |
 | Correr el portal y la API localmente | `README.md` → Setup, Run |
+| Levantar el monolito contenerizado (`docker-compose.yml`) | `README.md` → Estructura, `FLUJOS.md` → "Despliegue del monolito" |
 | Tocar `model/faq_rrhh.json` o recalibrar el modelo | `MODEL_TRAINING.md` |
 | Evaluar variancia/paráfrasis para el FAQ | `MODEL_TUNING.md` |
 | Probar el canal de WhatsApp local (emulador) | `README.md` → "Canal de WhatsApp" |

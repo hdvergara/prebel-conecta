@@ -58,7 +58,7 @@ the same file; don't let them drift into separate copies of the same facts.
 ### The three-tier chain (Predictive → ML → Agentic)
 
 `model/orquestador.py` decides this for every call to `/reply` — Python
-orchestrates the chain, not n8n. The two thresholds below are editable data
+orchestrates the chain, not n8n. The thresholds below are editable data
 (`model/arquitectura.json`), not hardcoded constants:
 
 | Tier | Trigger | What happens |
@@ -79,9 +79,9 @@ n8n's Cerebro remains reachable two ways, independent of each other: its own
 WhatsApp puertas call it directly (unaffected by this chain), and it can
 also serve as the LLM connector's backend over MCP (see layer 4 above) —
 in that second role it's what Tier "Agentic" above escalates to, when
-configured. `model/rrhh_api.py` also ships containerized (see `Dockerfile`)
-so it's reachable from wherever a connector backend runs, not just from
-`127.0.0.1`.
+configured. `model/rrhh_api.py` also ships containerized (see `Dockerfile`
+and `docker-compose.yml`, the deployable monolith) so it's reachable from
+wherever a connector backend runs, not just from `127.0.0.1`.
 
 ## 2. Railguards
 
