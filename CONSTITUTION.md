@@ -10,7 +10,7 @@ wrong and must be fixed to match this file, not the other way around.
 
 ## 1. Spec
 
-Prebel Conecta is a **demo HR portal** with two independent layers:
+Prebel Conecta is a **demo HR portal** with four independent layers:
 
 1. **Static layer** (`dist/`) — a zero-build HTML/CSS/JS site. It is published to
    GitHub Pages and MUST be fully usable with no backend running: profile switch,
@@ -32,10 +32,34 @@ Prebel Conecta is a **demo HR portal** with two independent layers:
    only a dev/test aid — or real Meta infrastructure later). It never runs in
    CI or in the static deploy; it's a developer-run process for manual testing.
 
+4. **Agentic layer** (`n8n/`) — a separate system, run by the team on their
+   own remote server (n8n + Ollama), outside this repo's CI and outside R1's
+   fictional-data scope: it answers by retrieving snippets from the **real**
+   Prebel documents (kept local-only, same as `.specs/`) and has a local LLM
+   (Ollama) **write** the answer from them, rather than choosing a pre-written
+   `faq_rrhh.json` entry. It never runs on the operator's machine and is not
+   covered by this repo's test harness (§3) — see `n8n/README.md`.
+
 Data flow for FAQ content: `model/faq_rrhh.json` (source of truth, `ruta`/`area`
 per entry) → `catalogo.py` generates `dist/faq.js` (static consumer) and feeds
 `RRHHBot` directly (semantic and channel consumers). All three consumers read
 the same file; don't let them drift into separate copies of the same facts.
+
+### The three-tier chain (Predictive → ML → Agentic)
+
+Every entry point — the portal, WhatsApp, and the n8n chat bubble — answers
+through the same escalating order, cheapest/fastest first, each tier only
+reached when the one before it couldn't confidently answer:
+
+| Tier | What | Where |
+|---|---|---|
+| 0 — Predictive | Keyword match, instant, free | `dist/app.js`'s `rank()` (web); the Cerebro's greeting/menu detector (n8n) |
+| 1 — ML | Chosen pre-written FAQ answer, `model/rrhh_bot.py`, <1s, free | `model/rrhh_api.py`'s `/reply`, called directly by the web portal and by n8n's Cerebro (`n8n/workflows/03-cerebro-ia.json`) as its own first step |
+| 2 — Agentic | LLM-composed answer from real documents, ~20s | n8n's Cerebro RAG+Ollama step, reached by WhatsApp and by the portal's gated chat bubble ("Puerta Web") |
+
+This is why `model/rrhh_api.py` also ships containerized (see `Dockerfile`):
+Tier 1 must be reachable from wherever Tier 2 runs, not just from
+`127.0.0.1`.
 
 ## 2. Railguards
 
@@ -91,6 +115,14 @@ style preference.
   either to a user as secure. If that verification is added later, it
   belongs in its own explicit step — don't silently upgrade either lookup's
   trust level in place.
+- **R8 — The tier chain's order and fallthrough must be preserved.** Any
+  change touching the three-tier chain above (adding a tier, changing what
+  triggers escalation) must keep cheaper/faster tiers tried before
+  slower/heavier ones, and every escalation must be a graceful fallthrough,
+  never a hard dependency: Tier 1's HTTP call from the Cerebro uses
+  `onError: continueErrorOutput` specifically so an unreachable Tier 1 falls
+  through to Tier 2 instead of breaking the whole answer — same spirit as
+  R2, now applied across systems, not just within `dist/`.
 
 ## 3. Harness
 

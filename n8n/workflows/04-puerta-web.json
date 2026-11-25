@@ -1,0 +1,162 @@
+{
+  "name": "Prebel – Puerta Web",
+  "nodes": [
+    {
+      "id": "w1",
+      "name": "Chat Trigger (portal)",
+      "notes": "Ajusta tras importar: 'Allowed Origins' debe ser el origen real del portal (https://<usuario>.github.io), no '*'. El modo debe quedar en el que habla el widget @n8n/chat incrustado (no 'Hosted Chat' -- esa sirve una página propia de n8n, no el portal). Ver n8n/README.md, sección Puerta Web.",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "webhookId": "9c6f1a2e-7b4d-4e1a-8f3c-1d5a6b7c8d04",
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "mode": "webhook",
+        "public": true,
+        "options": {
+          "allowedOrigins": "[origen real del portal, p. ej. https://hdvergara.github.io]",
+          "responseMode": "lastNode"
+        }
+      }
+    },
+    {
+      "id": "w2",
+      "name": "Preguntar al cerebro",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "FMh0nT4mwTi0x72z",
+          "cachedResultName": "Prebel – Cerebro (IA)"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pregunta": "={{ $json.chatInput }}",
+            "canal": "web",
+            "modo": "responder"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "pregunta",
+              "displayName": "pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "canal",
+              "displayName": "canal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "modo",
+              "displayName": "modo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "w3",
+      "name": "Formatear para el chat",
+      "notes": "El widget @n8n/chat espera la respuesta en 'output' (no 'respuesta', que es el nombre interno que usa el cerebro y las otras dos puertas).",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "w3a",
+              "name": "output",
+              "type": "string",
+              "value": "={{ $json.respuesta }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "s0",
+      "name": "Nota: qué es este flujo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -220
+      ],
+      "parameters": {
+        "width": 1040,
+        "height": 420,
+        "color": 7,
+        "content": "## Prebel – Puerta Web\n**Qué hace:** tercera puerta al mismo cerebro, para el portal estático (`dist/`) en vez de WhatsApp. Usa el nodo *Chat Trigger* de n8n, pensado para hablar con el widget embebible `@n8n/chat` (no con WhatsApp).\n\n**Por qué es más simple que las otras dos puertas:** el Chat Trigger es síncrono (pregunta → respuesta, como un fetch normal) -- no hace falta marcar \"leído\" ni mandar un aviso \"buscando\" aparte: el propio widget muestra su indicador de carga mientras espera (~20 s para el Nivel 2, agentic).\n\n**Antes de usarla en el portal:**\n- Pon el origen real del portal en *Allowed Origins* (no `*`) -- es la única defensa de este endpoint público, ver R3 en CONSTITUTION.md.\n- El servidor atiende **una** pregunta con IA a la vez (ver n8n/README.md): no actives esta puerta para todo visitante de GitHub Pages, solo para demos controladas (p. ej. un parámetro en la URL del portal)."
+      }
+    }
+  ],
+  "connections": {
+    "Chat Trigger (portal)": {
+      "main": [
+        [
+          {
+            "node": "Preguntar al cerebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preguntar al cerebro": {
+      "main": [
+        [
+          {
+            "node": "Formatear para el chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "America/Bogota",
+    "executionOrder": "v1"
+  }
+}

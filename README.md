@@ -8,6 +8,11 @@ el mismo buscador compara la pregunta con el FAQ usando dos modelos preentrenado
 No es un modelo que redacta respuestas. Elige la entrada del FAQ más parecida, o
 pide escribir a RRHH cuando la similitud no alcanza.
 
+Esta demo tiene varios componentes (portal, capa semántica, dos canales de
+WhatsApp). Para el mapa completo, los requisitos mínimos en conjunto y la
+provisión de cuentas/accesos, ver [`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md).
+Lo de abajo es el detalle de instalar y correr el portal localmente.
+
 ## Qué hace el portal
 
 Datos ficticios, guardados en el navegador (`localStorage`). Los perfiles salen de
@@ -153,14 +158,41 @@ apuntar a un entorno de pruebas real de Meta más adelante, solo hay que
 cambiar esos valores (y el `WA_GRAPH_URL` a `https://graph.facebook.com`); el
 código de `whatsapp_service.py` no cambia.
 
-## Canal de WhatsApp con n8n (opcional, servidor de pruebas)
+## Canal de WhatsApp con n8n + cadena de 3 niveles (opcional, servidor de pruebas)
 
-`n8n/` es otro canal de WhatsApp, independiente de `model/`: tres flujos de
-n8n que responden con IA local (Ollama), usando los documentos oficiales de
-Prebel como única fuente (RAG). Hay un "cerebro" compartido y dos "puertas":
-el emulador de WhatsApp Cloud API y Evolution API (WhatsApp real). No lee
-`model/faq_rrhh.json` ni cambia nada de `dist/` o `model/`. Qué hace, cómo se
-importa y qué datos quedan fuera de git está en [`n8n/README.md`](n8n/README.md).
+`n8n/` es un canal adicional (WhatsApp y, ahora, una burbuja de chat en el
+portal) que corre en el servidor del equipo: un "cerebro" compartido y tres
+"puertas" (emulador de WhatsApp Cloud API, Evolution API para WhatsApp real,
+y el portal vía una burbuja de chat).
+
+El cerebro ya no es un sistema aparte: antes de redactar una respuesta con
+IA a partir de los documentos oficiales de Prebel (RAG con Ollama, el
+"Nivel 2, Agentic"), le pregunta primero a `model/rrhh_api.py` (el mismo
+modelo que usa el portal) si tiene una respuesta segura del FAQ ficticio
+(el "Nivel 1, ML", < 1 s) — y solo si no la tiene, sigue con el RAG. Junto
+con la búsqueda por palabras clave del portal ("Nivel 0, Predictivo"), los
+tres niveles forman una sola cadena: barato y rápido primero, la IA que
+redacta (más lenta, ~20 s) solo cuando hace falta. Ver "El encadenamiento de
+3 niveles" en `CONSTITUTION.md`.
+
+Para que el cerebro (en el servidor del equipo) pueda llamar a
+`model/rrhh_api.py`, este se empaqueta con el `Dockerfile` de esta carpeta y
+se despliega junto a n8n y Ollama, en su misma red privada — nunca expuesto
+al público. Qué hace cada flujo, cómo se importa, cómo desplegar ese
+contenedor y qué datos quedan fuera de git está en
+[`n8n/README.md`](n8n/README.md).
+
+**Nota técnica — n8n local vs. real para pruebas:** se espera usar tanto
+una instancia real de n8n (la del servidor del equipo) como una local (con
+Docker, imagen oficial [`n8nio/n8n`](https://hub.docker.com/r/n8nio/n8n))
+para probar cambios a estos flujos — **a discreción de quien desarrolla o
+de SDET**, según qué se esté verificando. La local alcanza para validar que
+un flujo importa bien y que el Tier 1/Tier 2 se encadenan correctamente
+(incluido el caso en que el Tier 1 falla y cae con gracia al Tier 2); la
+real es la única forma de validar el RAG completo (Ollama, documentos
+reales) y la entrega real por WhatsApp. Ninguna reemplaza a la otra. Ver
+`SETUP_AND_DEPLOY.md` §4 y la sección "Probar los flujos en un n8n local"
+de [`n8n/README.md`](n8n/README.md) para el procedimiento.
 
 ## Estructura
 
@@ -173,8 +205,12 @@ importa y qué datos quedan fuera de git está en [`n8n/README.md`](n8n/README.m
   fuente de los datos de persona — `catalogo.py` solo los lee y exporta) y
   `entrenar.py` (cachea embeddings y recalibra el umbral de similitud — ver
   [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
-- `n8n/` — canal de WhatsApp en n8n (flujos exportados + scripts de la base de
-  conocimiento). Ver [`n8n/README.md`](n8n/README.md).
+- `n8n/` — canal de WhatsApp y burbuja de chat del portal en n8n (flujos
+  exportados + scripts de la base de conocimiento). Ver
+  [`n8n/README.md`](n8n/README.md).
+- `Dockerfile` — empaqueta `model/rrhh_api.py` para desplegarlo junto a n8n
+  y Ollama (Nivel 1 de la cadena de 3 niveles, ver más abajo); no se usa
+  para correr el portal localmente, eso sigue siendo `iniciar-conecta.ps1`.
 - `catalogo.py` — escribe `dist/catalogo.js` y `dist/faq.js` desde
   `model/empleados_mock.json` y `model/faq_rrhh.json`.
 - `iniciar-conecta.ps1` — levanta la API y el sitio con un solo comando.
@@ -197,12 +233,18 @@ importa y qué datos quedan fuera de git está en [`n8n/README.md`](n8n/README.m
 | **Git** | Clonar y versionar | `prebel-conecta/` es su propio repositorio, independiente de la carpeta que lo contiene. |
 | Navegador | Abrir la demo | Playwright instala su propio Chromium para los e2e (`npx playwright install`); no usa el navegador del sistema. |
 
-No hace falta Docker, build tools de C/C++, ni GPU. La primera vez que corras la
+No hace falta build tools de C/C++ ni GPU. La primera vez que corras la
 API sí se descargan ~1 GB de pesos de modelo desde Hugging Face (ver más abajo).
 
 Ninguna de estas herramientas hace falta para lo de arriba: Ollama (local) u
 OpenAI/Claude/Gemini (con su clave de API) son **solo** para `entrenar.py
 --augmentar`, que es opcional — ver [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
+Docker tampoco hace falta para correr el portal o la API — es aparte, para
+contenerizar `model/rrhh_api.py` (ver `Dockerfile`) y para probar el canal
+n8n con una instancia local (ver sección **Canal de WhatsApp con n8n** más
+abajo). El detalle completo de requisitos de **todos** los componentes,
+incluida la provisión de cuentas, está en
+[`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md).
 
 ## Setup
 

@@ -365,3 +365,27 @@ try {
     $('perfil-aviso-cerrar').onclick = () => aviso.remove();
   }
 } catch {}
+
+// Puerta Web (Tier 2 del encadenamiento Predictivo -> ML -> Agentic, ver
+// CONSTITUTION.md): burbuja de chat de n8n (@n8n/chat) contra la misma
+// Cerebro que ya usa WhatsApp (ver n8n/README.md). Nunca para cualquier
+// visitante de GitHub Pages -- el servidor atiende una sola pregunta con
+// IA a la vez -- así que solo se activa con ?chat=demo en la URL, y
+// mientras CHAT_WEBHOOK_URL no se configure (sigue con su placeholder
+// entre corchetes, ver R5 en CONSTITUTION.md) no hace nada. R2: carga
+// aparte, después de todo lo demás, y si falla el portal sigue igual.
+const CHAT_WEBHOOK_URL = '[URL del Chat Trigger de n8n, p. ej. https://tu-n8n/webhook/prebel-chat]';
+try {
+  if (new URLSearchParams(location.search).get('chat') === 'demo' && !CHAT_WEBHOOK_URL.startsWith('[')) {
+    const estilos = document.createElement('link');
+    estilos.rel = 'stylesheet';
+    estilos.href = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+    document.head.appendChild(estilos);
+    // Verifica el nombre exacto del bundle ESM contra la versión de
+    // @n8n/chat que uses -- no se pudo probar en vivo sin un Chat Trigger
+    // real (ver n8n/README.md).
+    import('https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js')
+      .then(({createChat}) => createChat({webhookUrl: CHAT_WEBHOOK_URL}))
+      .catch(() => {});
+  }
+} catch {}
