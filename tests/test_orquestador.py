@@ -10,20 +10,36 @@ import json
 
 import pytest
 
+from fakes import FakeSentenceTransformer
 from orquestador import Orquestador
+
+
+@pytest.fixture(autouse=True)
+def _retroalimentacion_aislada(tmp_path, monkeypatch):
+    """Cada test de este archivo usa su propia cola de retroalimentación
+    vacía (ver model/rag_retroalimentacion.py, que orquestador.py consulta
+    en cada llamada) -- sin esto, los tests leerían el
+    model/retroalimentacion.json real de quien corra la suite."""
+    import retroalimentacion
+
+    monkeypatch.setattr(retroalimentacion, "RUTA", tmp_path / "retroalimentacion.json")
 
 
 class BotFalso:
     """Devuelve el mismo resultado de match() para cualquier texto, con la
     confianza fijada en el constructor -- lo único que le importa a la
-    cadena del orquestador."""
+    cadena del orquestador. `modelo` es lo que el RAG de retroalimentación
+    recibiría como `self.bot.model`; con la cola vacía (el default en estos
+    tests, ver _retroalimentacion_aislada) nunca se usa de verdad, así que
+    None basta salvo que el test registre algo en la cola."""
 
-    def __init__(self, confianza, tipo="confiado", ruta="ruta-x", area="area-x", guia="Guía X."):
+    def __init__(self, confianza, tipo="confiado", ruta="ruta-x", area="area-x", guia="Guía X.", modelo=None):
         self._resultado = {
             "respuesta": "Respuesta del ML.", "ruta": ruta, "area": area,
             "confianza": confianza, "sentimiento": {"etiqueta": "neutral", "estrellas": 3, "confianza": 0.5},
             "guia": guia, "tipo": tipo,
         }
+        self.model = modelo
 
     def match(self, text):
         return dict(self._resultado)
@@ -127,16 +143,13 @@ def test_pedir_continuar_skips_the_threshold_and_goes_straight_to_the_llm():
     assert conector.llamadas != []
 
 
-def test_llm_answer_for_a_low_confidence_question_is_queued_as_feedback(tmp_path, monkeypatch):
+def test_llm_answer_for_a_low_confidence_question_is_queued_as_feedback(tmp_path):
     """Given confianza = 0.40 (las capas anteriores no tenían esta
     respuesta) y el conector sí responde.
     When responder_pregunta() se llama.
     Then la pregunta/respuesta queda registrada en la cola de
     retroalimentación, para revisión manual -- no se escribe sola en
     faq_rrhh.json (ver model/retroalimentacion.py)."""
-    import retroalimentacion
-
-    monkeypatch.setattr(retroalimentacion, "RUTA", tmp_path / "retroalimentacion.json")
     conector = ConectorFalso(respuesta="Respuesta nueva del LLM.")
     orq = Orquestador(BotFalso(confianza=0.40), conector)
     orq.responder_pregunta("una pregunta que el ml no sabia")
@@ -147,7 +160,7 @@ def test_llm_answer_for_a_low_confidence_question_is_queued_as_feedback(tmp_path
     assert pendientes[0]["respuesta"] == "Respuesta nueva del LLM."
 
 
-def test_llm_answer_is_not_queued_when_the_ml_already_had_it_with_confidence(tmp_path, monkeypatch):
+def test_llm_answer_is_not_queued_when_the_ml_already_had_it_with_confidence():
     """Given confianza = 0.90 (el ML ya la tenía con confianza, sobre
     UMBRAL_LLM), pero pedir_continuar=True fuerza igual la escalada al LLM,
     y el conector responde.
@@ -156,9 +169,45 @@ def test_llm_answer_is_not_queued_when_the_ml_already_had_it_with_confidence(tmp
     tenían esta respuesta con confianza, no es información nueva."""
     import retroalimentacion
 
-    monkeypatch.setattr(retroalimentacion, "RUTA", tmp_path / "retroalimentacion.json")
     conector = ConectorFalso()
     orq = Orquestador(BotFalso(confianza=0.90, tipo="confiado"), conector)
     orq.responder_pregunta("pregunta ya conocida por el ml", pedir_continuar=True)
 
     assert retroalimentacion.listar_pendientes() == []
+
+
+def test_a_similar_already_answered_question_is_reused_without_calling_the_connector():
+    """Given confianza = 0.40 (bajo el umbral del LLM) y una pregunta
+    idéntica a una que ya está en la cola de retroalimentación.
+    When responder_pregunta() se llama.
+    Then se reusa esa respuesta -- capa='retroalimentacion', tipo='reusado'
+    -- y el conector LLM nunca se consulta."""
+    import retroalimentacion
+
+    retroalimentacion.registrar("cuanto dura la licencia de paternidad", "14 dias calendario.", {})
+    conector = ConectorFalso(respuesta="Esto no debería usarse.")
+    orq = Orquestador(BotFalso(confianza=0.40, modelo=FakeSentenceTransformer()), conector)
+    resultado = orq.responder_pregunta("cuanto dura la licencia de paternidad")
+
+    assert resultado["respuesta"] == "14 dias calendario."
+    assert resultado["capa"] == "retroalimentacion"
+    assert resultado["tipo"] == "reusado"
+    assert conector.llamadas == []
+
+
+def test_an_unrelated_low_confidence_question_still_escalates_to_the_connector():
+    """Given confianza = 0.40 y una cola de retroalimentación con una
+    entrada para un tema distinto (sin relación con la pregunta actual).
+    When responder_pregunta() se llama.
+    Then no hay coincidencia que reusar -- sigue escalando al conector LLM
+    exactamente como antes de este RAG."""
+    import retroalimentacion
+
+    retroalimentacion.registrar("como solicito un certificado laboral", "Desde Mi espacio.", {})
+    conector = ConectorFalso(respuesta="Respuesta generada por el LLM.")
+    orq = Orquestador(BotFalso(confianza=0.40, modelo=FakeSentenceTransformer()), conector)
+    resultado = orq.responder_pregunta("cuanto dura la licencia de paternidad")
+
+    assert resultado["respuesta"] == "Respuesta generada por el LLM."
+    assert resultado["capa"] == "llm"
+    assert conector.llamadas != []

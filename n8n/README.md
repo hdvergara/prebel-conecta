@@ -11,10 +11,15 @@ cuando la pregunta no está en ellos.
 
 ## La idea: un cerebro y tres puertas
 
-```
-WhatsApp real ──► Evolution API ──► [Puerta Evolution] ─┐
-Emulador Cloud API ─────────────► [Puerta Emulador] ────┼─► [Cerebro (IA)] ──► respuesta
-Portal (dist/, burbuja de chat) ─► [Puerta Web] ─────────┘
+```mermaid
+flowchart LR
+    WA["WhatsApp real"] --> EV["Evolution API"] --> PE["Puerta Evolution"]
+    EM["Emulador Cloud API"] --> PEm["Puerta Emulador"]
+    PO["Portal (dist/, burbuja de chat)"] --> PW["Puerta Web"]
+    PE --> CER["Cerebro (IA)"]
+    PEm --> CER
+    PW --> CER
+    CER --> R["respuesta"]
 ```
 
 - **Cerebro** (`03-cerebro-ia.json`): sub-flujo que recibe `pregunta` y devuelve

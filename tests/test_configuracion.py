@@ -12,12 +12,14 @@ from configuracion import _POR_DEFECTO, _cargar, _validar
 # Context: _validar() y _cargar() operan sobre diccionarios/archivos
 # construidos directamente en el test, no sobre model/arquitectura.json real.
 
+_CONFIG_VALIDA = {"umbral_predictivo": 0.95, "umbral_llm": 0.75, "umbral_retroalimentacion": 0.85, "orden_capas": ["predictivo", "ml", "llm"]}
+
+
 def test_validar_accepts_a_well_formed_config():
     """Given a dict with the right shape and types.
     When _validar() is called.
     Then it returns the same values, as floats."""
-    resultado = _validar({"umbral_predictivo": 0.95, "umbral_llm": 0.75, "orden_capas": ["predictivo", "ml", "llm"]})
-    assert resultado == {"umbral_predictivo": 0.95, "umbral_llm": 0.75, "orden_capas": ["predictivo", "ml", "llm"]}
+    assert _validar(dict(_CONFIG_VALIDA)) == _CONFIG_VALIDA
 
 
 def test_validar_coerces_numeric_strings_to_float():
@@ -25,9 +27,11 @@ def test_validar_coerces_numeric_strings_to_float():
     for comparisons against a float confidence).
     When _validar() is called.
     Then they come back as real floats, not strings."""
-    resultado = _validar({"umbral_predictivo": "0.95", "umbral_llm": "0.75", "orden_capas": ["predictivo"]})
+    datos = {**_CONFIG_VALIDA, "umbral_predictivo": "0.95", "umbral_llm": "0.75", "umbral_retroalimentacion": "0.85"}
+    resultado = _validar(datos)
     assert resultado["umbral_predictivo"] == 0.95
     assert isinstance(resultado["umbral_predictivo"], float)
+    assert isinstance(resultado["umbral_retroalimentacion"], float)
 
 
 def test_validar_rejects_a_non_numeric_threshold():
@@ -35,7 +39,14 @@ def test_validar_rejects_a_non_numeric_threshold():
     When _validar() is called.
     Then it returns None instead of letting a string reach a later
     float comparison."""
-    assert _validar({"umbral_predictivo": 0.95, "umbral_llm": "no es un numero", "orden_capas": []}) is None
+    assert _validar({**_CONFIG_VALIDA, "umbral_llm": "no es un numero"}) is None
+
+
+def test_validar_rejects_a_non_numeric_retroalimentacion_threshold():
+    """Given umbral_retroalimentacion as a non-numeric string.
+    When _validar() is called.
+    Then it returns None."""
+    assert _validar({**_CONFIG_VALIDA, "umbral_retroalimentacion": "no es un numero"}) is None
 
 
 def test_validar_rejects_thresholds_out_of_the_llm_below_predictivo_order():
@@ -43,21 +54,28 @@ def test_validar_rejects_thresholds_out_of_the_llm_below_predictivo_order():
     sense in that order for the chain).
     When _validar() is called.
     Then it returns None."""
-    assert _validar({"umbral_predictivo": 0.5, "umbral_llm": 0.9, "orden_capas": []}) is None
+    assert _validar({**_CONFIG_VALIDA, "umbral_predictivo": 0.5, "umbral_llm": 0.9}) is None
 
 
 def test_validar_rejects_thresholds_outside_zero_to_one():
     """Given a threshold above 1.0.
     When _validar() is called.
     Then it returns None."""
-    assert _validar({"umbral_predictivo": 1.5, "umbral_llm": 0.75, "orden_capas": []}) is None
+    assert _validar({**_CONFIG_VALIDA, "umbral_predictivo": 1.5}) is None
+
+
+def test_validar_rejects_a_retroalimentacion_threshold_outside_zero_to_one():
+    """Given umbral_retroalimentacion above 1.0.
+    When _validar() is called.
+    Then it returns None."""
+    assert _validar({**_CONFIG_VALIDA, "umbral_retroalimentacion": 1.5}) is None
 
 
 def test_validar_rejects_a_non_list_orden_capas():
     """Given orden_capas as a string instead of a list.
     When _validar() is called.
     Then it returns None."""
-    assert _validar({"umbral_predictivo": 0.95, "umbral_llm": 0.75, "orden_capas": "predictivo"}) is None
+    assert _validar({**_CONFIG_VALIDA, "orden_capas": "predictivo"}) is None
 
 
 def test_cargar_falls_back_to_defaults_when_the_file_has_the_wrong_type(tmp_path, monkeypatch):

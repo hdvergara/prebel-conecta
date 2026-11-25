@@ -33,6 +33,17 @@ def test_rrhh_bot_never_imports_the_llm_connector_or_the_orchestrator():
     assert "orquestador" not in modulos
 
 
+def test_rag_retroalimentacion_never_imports_rrhh_bot_or_the_connector():
+    """Given model/rag_retroalimentacion.py.
+    When se listan sus imports.
+    Then no incluye rrhh_bot (recibe el modelo por inyección, no lo carga
+    él mismo) ni conectores (no decide si escalar, solo si hay una
+    respuesta previa que reusar)."""
+    modulos = _modulos_importados(MODEL_DIR / "rag_retroalimentacion.py")
+    assert "rrhh_bot" not in modulos
+    assert "conectores" not in modulos
+
+
 def test_conectores_never_imports_rrhh_bot():
     """Given model/conectores.py (la capa LLM/agéntica).
     When se listan sus imports.
@@ -50,5 +61,17 @@ def test_only_the_orchestrator_imports_the_connector_module():
     importadores = {
         ruta.stem for ruta in MODEL_DIR.glob("*.py")
         if ruta.stem != "conectores" and "conectores" in _modulos_importados(ruta)
+    }
+    assert importadores == {"orquestador"}
+
+
+def test_only_the_orchestrator_imports_the_feedback_rag_module():
+    """Given todos los archivos .py de model/.
+    When se busca quién importa rag_retroalimentacion.py.
+    Then solo orquestador.py lo hace -- es quien decide cuándo reusar una
+    respuesta ya dada, nadie más necesita saberlo."""
+    importadores = {
+        ruta.stem for ruta in MODEL_DIR.glob("*.py")
+        if ruta.stem != "rag_retroalimentacion" and "rag_retroalimentacion" in _modulos_importados(ruta)
     }
     assert importadores == {"orquestador"}

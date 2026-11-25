@@ -2,16 +2,22 @@
 Python, no n8n, decide aquí cuándo una respuesta ya es suficientemente
 confiable (capa "predictivo"), cuándo usar la respuesta semántica local tal
 cual (capa "ml"), y cuándo escalar al conector LLM (capa "llm") -- la única
-capa que puede hablarle a model/conectores.py.
+capa que puede hablarle a model/conectores.py. Antes de escalar de verdad,
+revisa si una pregunta parecida ya fue resuelta antes por el LLM (capa
+"retroalimentacion", ver model/rag_retroalimentacion.py) -- esto no es una
+cuarta capa nueva en la cadena ratificada, es una optimización dentro del
+paso de escalada para no pagar el costo del LLM dos veces por preguntas
+parecidas.
 
-Los dos umbrales (model/configuracion.py) se leen como dato editable, no
-como constantes de código. pedir_continuar es el futuro botón "esto no es
-lo que buscaba" del lado de quien llama (todavía no conectado desde
+Los umbrales (model/configuracion.py) se leen como dato editable, no como
+constantes de código. pedir_continuar es el futuro botón "esto no es lo
+que buscaba" del lado de quien llama (todavía no conectado desde
 dist/app.js ni n8n en este branch, pero el contrato ya lo admite): salta
 directo al conector LLM sin importar el umbral.
 """
 from configuracion import UMBRAL_LLM, UMBRAL_PREDICTIVO
 from conectores import ConectorLLM, crear_conector
+from rag_retroalimentacion import buscar_similar
 from retroalimentacion import registrar
 
 
@@ -30,6 +36,13 @@ class Orquestador:
             return {**resultado, "capa": "ml"}
 
         contexto = {"ruta": resultado["ruta"], "area": resultado["area"]}
+
+        coincidencia = buscar_similar(self.bot.model, texto)
+        if coincidencia is not None:
+            # Una pregunta parecida ya la resolvió el conector LLM antes --
+            # se reusa esa respuesta sin volver a llamarlo.
+            return {**resultado, "respuesta": coincidencia["respuesta"], "tipo": "reusado", "capa": "retroalimentacion"}
+
         respuesta_llm = self.conector.responder(texto, contexto)
         if respuesta_llm is None:
             # Caída controlada: sin conector disponible o sin respuesta, se

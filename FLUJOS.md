@@ -24,34 +24,31 @@ embeddings, no contesta preguntas de un colaborador.
 Dueña del código: `model/orquestador.py`. Se activa en cada `POST /reply`
 que recibe texto no vacío.
 
-```
-texto ──► RRHHBot.match(texto) ──► confianza
-                                      │
-              ┌───────────────────────┼───────────────────────┐
-              │                       │                       │
-      confianza > 0.95        0.75 ≤ confianza ≤ 0.95   confianza < 0.75
-      (o nunca si               (o nunca si pide           (o si pide
-       pide "seguir")            "seguir")                  "seguir")
-              │                       │                       │
-       capa="predictivo"       capa="ml"              conector LLM (MCP)
-      (la respuesta del      (la respuesta del              │
-       ML, tal cual)          ML, tal cual)         ¿responde? ──no──► capa="ml"
-                                                             │          (cae al ML
-                                                            sí           ya calculado)
-                                                             │
-                                                    envuelve con ruta/area/guia
-                                                    que el ML ya tenía; si la
-                                                    confianza del ML era < 0.75,
-                                                    se encola en retroalimentacion.json
-                                                    (revisión manual, nunca automática)
-                                                             │
-                                                      capa="llm", tipo="generado"
+```mermaid
+flowchart TD
+    A["texto"] --> B["RRHHBot.match(texto) → confianza"]
+    B --> P{"¿pide seguir?<br>(seguir: true)"}
+    P -->|sí, salta los dos umbrales| G
+    P -->|no| C{"confianza > 0.95?"}
+    C -->|sí| D["capa = predictivo<br>respuesta del ML, tal cual"]
+    C -->|no| E{"confianza ≥ 0.75?"}
+    E -->|sí| F["capa = ml<br>respuesta del ML, tal cual"]
+    E -->|no| G{"¿pregunta parecida ya<br>resuelta por el LLM?<br>(RAG, umbral 0.85)"}
+    G -->|sí| H["capa = retroalimentacion<br>tipo = reusado<br>(no llama al conector)"]
+    G -->|no| I["conector LLM (MCP)"]
+    I --> J{"¿responde?"}
+    J -->|no| K["capa = ml<br>(cae al ML ya calculado)"]
+    J -->|sí| L["envuelve con ruta/area/guia<br>del ML; si confianza < 0.75,<br>se encola en retroalimentacion.json<br>(revisión manual + reuso futuro)"]
+    L --> M["capa = llm<br>tipo = generado"]
 ```
 
-Los dos umbrales (0.95 y 0.75) y el orden de las capas son datos editables
-en `model/arquitectura.json` (cargados por `model/configuracion.py`), no
-constantes de código -- ver CONSTITUTION.md R8/R9 para las reglas que esto
-debe respetar.
+Los umbrales (0.95, 0.75, y 0.85 para el reuso) y el orden de las capas son
+datos editables en `model/arquitectura.json` (cargados por
+`model/configuracion.py`), no constantes de código -- ver CONSTITUTION.md
+R8/R9 para las reglas que esto debe respetar. El paso de reuso
+(`model/rag_retroalimentacion.py`) no es una capa nueva en la cadena
+ratificada (Predictivo/ML/Agentic) -- es una optimización dentro del paso
+de escalada, para no pagarle al LLM dos veces por preguntas parecidas.
 
 ### Contrato de `POST /reply`
 
@@ -67,8 +64,8 @@ debe respetar.
   "confianza": 0.92 | null,
   "sentimiento": { "etiqueta": "positivo", "estrellas": 5, "confianza": 0.8 } | null,
   "guia": "..." | null,
-  "tipo": "confiado" | "acotar" | "saludo" | "grosero" | "fallback" | "generado" | null,
-  "capa": "predictivo" | "ml" | "llm" | null
+  "tipo": "confiado" | "acotar" | "saludo" | "grosero" | "fallback" | "generado" | "reusado" | null,
+  "capa": "predictivo" | "ml" | "llm" | "retroalimentacion" | null
 }
 ```
 
@@ -102,6 +99,26 @@ Hoy no existe un servidor MCP real montado para este proyecto (ni
 envolviendo a Ollama ni al RAG de n8n) -- es trabajo de infraestructura
 del equipo, fuera de este repo.
 
+### Reuso por retroalimentación (capa "retroalimentacion")
+
+`model/rag_retroalimentacion.py` -- sin configuración propia, siempre
+activo: antes de llamar al conector, compara por similitud semántica
+(mismo modelo de embeddings que la capa ML, inyectado, no uno propio)
+contra las preguntas ya guardadas en `retroalimentacion.json`. Si la mejor
+coincidencia supera `umbral_retroalimentacion` (0.85), se reusa esa
+respuesta sin tocar el conector. La cola es chica (de tamaño de demo) --
+se recalculan los embeddings en cada búsqueda, sin caché, a propósito.
+
+### Despliegue del monolito
+
+`docker-compose.yml` (raíz del repo) empaqueta esta cadena completa como
+un solo servicio desplegable (decisión #3 de la ronda de reducción
+primaria del modelo) -- `docker compose up --build` la levanta localmente
+en `http://localhost:5000`. Un volumen nombrado persiste
+`retroalimentacion.json` entre reinicios del contenedor (sin él, el reuso
+de arriba se reiniciaría vacío cada vez); n8n y Ollama quedan deliberadamente
+fuera de este archivo, como infraestructura aparte.
+
 ## 3. La cadena de n8n (flujos 4 y 5): independiente, sin cambios
 
 El Cerebro de n8n (`n8n/workflows/03-cerebro-ia.json`) tiene su **propia**
@@ -111,12 +128,22 @@ tocó en esta ronda:
 1. **Predictivo** -- su propio detector de saludo/menú (nodo *Detectar
    saludo*), independiente del de `rrhh_bot.py`.
 2. **ML** -- llama a `POST /reply` igual que el flujo 2, pero solo lee
-   `confianza` y `reply` de la respuesta; si `confianza ≥ 0,65` la usa
+   `confianza` y `reply` de la respuesta; si `confianza ≥ 0.65` la usa
    directo. Como el conector LLM de Python está apagado por defecto
    (`LLM_CONECTOR` sin definir), esta llamada se comporta igual que antes
    de esta ronda -- rápida, sin escalar nunca del lado de Python.
 3. **Agentic** -- su propio RAG con Ollama (`embeddinggemma` +
    `gemma4:e2b`) sobre los documentos reales de Prebel.
+
+```mermaid
+flowchart TD
+    N0["mensaje de WhatsApp"] --> N1{"¿saludo/menú?<br>(detector propio de n8n)"}
+    N1 -->|sí| N2["respuesta de menú, instantánea"]
+    N1 -->|no| N3["POST /reply (flujo 2)"]
+    N3 --> N4{"confianza ≥ 0.65?"}
+    N4 -->|sí| N5["usa esa respuesta del FAQ"]
+    N4 -->|no, o la llamada falla| N6["RAG propio con Ollama<br>sobre los documentos reales"]
+```
 
 Ver `n8n/README.md` para el detalle completo de esta cadena (que sigue
 siendo la fuente de verdad de cómo responde WhatsApp real).
@@ -133,15 +160,21 @@ cadenas son completamente independientes.
 - **Flujo 3 (WhatsApp local) no pasa por el orquestador.**
   `model/whatsapp_service.py` llama a `bot.match(texto)` directo, no a
   `orquestador.responder_pregunta(...)` -- sigue siendo solo capa ML, sin
-  el escalado 95/75 ni el conector LLM. No es un descuido de esta ronda:
+  el escalado 95/75/85, el reuso por retroalimentación, ni el conector LLM.
+  No es un descuido de esta ronda:
   es el estado heredado, documentado aquí para que sea visible y se pueda
   decidir a propósito si conviene cambiarlo.
 - **`dist/app.js`'s `rank()` sigue siendo JS puro, sin red** (R2,
   `CONSTITUTION.md`) -- nunca puede compartir código con el orquestador ni
   con `RRHHBot`, por diseño.
-- **Las dos cadenas de tres niveles (Python y n8n) tienen su propio
-  detector de saludo**, cada una independiente -- ver
-  `CONSTITUTION.md` R9 y la nota de la sección 3 arriba.
+- **Tres detectores de saludo siguen existiendo por separado:**
+  `dist/app.js`'s `rank()` (implícito, por palabras clave), `RRHHBot`'s
+  `_es_saludo()` (dentro de la capa ML, no del Predictivo de Python -- a
+  diferencia de n8n, el "Predictivo" de Python no es un detector de
+  saludo, es solo "confiar en una respuesta del ML muy segura"), y el
+  nodo propio de n8n (su Predictivo, §3 arriba). Ninguno comparte código
+  con los otros dos, por diseño en el caso de `rank()` (R2) y por decisión
+  explícita en los otros dos (ver `CONSTITUTION.md` R9).
 
 ## 5. Dónde vive cada pieza
 
@@ -149,10 +182,12 @@ cadenas son completamente independientes.
 |---|---|
 | Predictivo (portal) | `dist/app.js` (`rank()`) |
 | ML (semántico + sentimiento) | `model/rrhh_bot.py` |
-| Orquestador (95/75, `seguir`, retorno envuelto) | `model/orquestador.py` |
+| Orquestador (95/75/85, `seguir`, retorno envuelto) | `model/orquestador.py` |
 | Spec-Doc editable (umbrales) | `model/arquitectura.json` + `model/configuracion.py` |
 | Conector LLM | `model/conectores.py` |
 | Cola de retroalimentación | `model/retroalimentacion.py` |
+| Reuso por similitud sobre esa cola | `model/rag_retroalimentacion.py` |
 | Contrato HTTP | `model/rrhh_api.py` (`POST /reply`) |
 | Canal WhatsApp local | `model/whatsapp_service.py` |
 | Cadena propia de n8n | `n8n/workflows/03-cerebro-ia.json` + `n8n/README.md` |
+| Monolito desplegable | `Dockerfile` + `docker-compose.yml` |

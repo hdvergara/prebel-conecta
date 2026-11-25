@@ -91,14 +91,20 @@ def test_reply_with_missing_body_is_treated_as_empty_text(client):
     assert resp.get_json()["ruta"] is None
 
 
-def test_reply_passes_seguir_through_to_the_orchestrator(client):
+def test_reply_passes_seguir_through_to_the_orchestrator(client, tmp_path, monkeypatch):
     """Given a low-confidence question and a connector wired to answer, and
     the request includes "seguir": true.
     When /reply handles it.
     Then the orchestrator escalates to the connector (capa='llm') and its
     answer, enriched with what the ML layer already knew, comes back
     through the HTTP contract end to end."""
+    import retroalimentacion
     import rrhh_api
+
+    # Esta llamada escala y registra retroalimentación -- aislar RUTA del
+    # archivo real, igual que en tests/test_orquestador.py, para no
+    # contaminar model/retroalimentacion.json en cada corrida de la suite.
+    monkeypatch.setattr(retroalimentacion, "RUTA", tmp_path / "retroalimentacion.json")
 
     rrhh_api.orquestador.conector = type(
         "ConectorDePrueba", (), {"responder": lambda self, pregunta, contexto: "Respuesta generada de prueba."}

@@ -1,0 +1,41 @@
+# Monolito desplegable del backend (decisión #3 de
+# REDUCCION_PRIMARIA_DEL_MODELO.md): un solo servicio que empaqueta
+# model/rrhh_api.py + model/orquestador.py + el conector LLM. n8n y Ollama
+# quedan deliberadamente fuera de este archivo -- si se usan, siguen siendo
+# infraestructura aparte (ver n8n/README.md), a la que el conector puede
+# apuntar vía MCP; no se fusionan en este monolito.
+#
+# Uso local:
+#   docker compose up --build
+#   curl -X POST http://localhost:5000/reply -H "Content-Type: application/json" -d "{\"text\":\"hola\"}"
+#   (en Windows, para texto con tildes/ñ usa un cliente que mande UTF-8 de
+#   verdad -- ver la nota en el Dockerfile; no es un bug de este servicio)
+#
+# En el servidor del equipo, no mapear el puerto a una IP pública -- solo
+# n8n, en la misma red privada, debe poder alcanzarlo (ver n8n/README.md).
+services:
+  rrhh-api:
+    build: .
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      # Por defecto, igual que hoy: sin conector configurado, nunca escala
+      # más allá de la respuesta semántica local.
+      # LLM_CONECTOR: mcp
+      # MCP_SERVIDOR_CMD: "servidor-mcp --flag valor"
+      # MCP_SERVIDOR_URL: http://host.docker.internal:puerto
+      # MCP_HERRAMIENTA: responder_rrhh
+      RRHH_API_HOST: "0.0.0.0"
+      RETROALIMENTACION_DIR: /app/estado
+    volumes:
+      # Directorio dedicado (no un archivo suelto: un volumen nombrado
+      # montado sobre un archivo que no existe en la imagen falla en
+      # algunos motores de Docker -- "not a directory") para que la cola de
+      # retroalimentación (y el RAG que la lee, ver
+      # model/rag_retroalimentacion.py) sobreviva a un restart del
+      # contenedor -- sin esto, cada restart la vacía.
+      - retroalimentacion:/app/estado
+    restart: unless-stopped
+
+volumes:
+  retroalimentacion:
