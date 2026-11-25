@@ -110,8 +110,7 @@ confía en ella directo; entre 75% y 95% se usa tal cual; por debajo de 75%
 (o si quien llama pide seguir buscando) se escala a un conector LLM
 intercambiable (hoy, vía MCP -- apagado por defecto, así que esto no
 cambia nada si no se configura). El detalle completo de esa cadena, con
-diagrama, está en [`FLUJOS.md`](FLUJOS.md) y en "El encadenamiento de 3
-niveles" de `CONSTITUTION.md`.
+diagrama, está en [`FLUJOS.md`](FLUJOS.md) y en `CONSTITUTION.md` (R8/R9).
 
 `POST /reply` recibe `{"text": "...", "seguir": false}` (`seguir` es
 opcional) y responde con `reply`, `ruta`, `area`, `confianza`,
