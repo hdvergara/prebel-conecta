@@ -11,6 +11,8 @@ pide escribir a RRHH cuando la similitud no alcanza.
 Esta demo tiene varios componentes (portal, capa semántica, dos canales de
 WhatsApp). Para el mapa completo, los requisitos mínimos en conjunto y la
 provisión de cuentas/accesos, ver [`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md).
+Para el detalle de **qué camino toma cada pregunta** según por dónde entra
+(portal, WhatsApp local, WhatsApp/chat por n8n), ver [`FLUJOS.md`](FLUJOS.md).
 Lo de abajo es el detalle de instalar y correr el portal localmente.
 
 ## Qué hace el portal
@@ -80,6 +82,10 @@ Si la API no responde en 1,5 segundos, el cuadro igual aparece: la respuesta es
 el mensaje de respaldo y confianza y sentimiento dicen "No disponible (API local
 no activa)".
 
+`/reply` ya devuelve algunos campos más (`guia`, `tipo`, `capa` -- ver
+siguiente sección y [`FLUJOS.md`](FLUJOS.md)) que este cuadro todavía no
+muestra; agregarlos a la UI queda para una próxima ronda.
+
 ## Cómo funciona el modelo
 
 `model/rrhh_bot.py` carga `model/faq_rrhh.json` al arrancar. Cada tema tiene
@@ -98,8 +104,19 @@ varias formas de preguntarlo, una respuesta, y a veces una ruta y un área.
    clasifica el mensaje de 1 a 5 estrellas: 1–2 negativo, 3 neutral, 4–5 positivo.
    No cambia la respuesta; solo se muestra en el cuadro.
 
-`POST /reply` recibe `{"text": "..."}` y responde con `reply`, `ruta`, `area`,
-`confianza` y `sentimiento`. Un texto vacío también devuelve el respaldo.
+Por encima de `RRHHBot`, `model/orquestador.py` decide si esa respuesta
+semántica ya basta o si hace falta escalar: con más de 95% de similitud se
+confía en ella directo; entre 75% y 95% se usa tal cual; por debajo de 75%
+(o si quien llama pide seguir buscando) se escala a un conector LLM
+intercambiable (hoy, vía MCP -- apagado por defecto, así que esto no
+cambia nada si no se configura). El detalle completo de esa cadena, con
+diagrama, está en [`FLUJOS.md`](FLUJOS.md) y en `CONSTITUTION.md` (R8/R9).
+
+`POST /reply` recibe `{"text": "...", "seguir": false}` (`seguir` es
+opcional) y responde con `reply`, `ruta`, `area`, `confianza`,
+`sentimiento`, `guia`, `tipo` y `capa` -- los últimos tres son aditivos,
+`dist/app.js` todavía no los usa (ver `FLUJOS.md` para el contrato
+completo). Un texto vacío también devuelve el respaldo.
 
 La primera vez, los dos modelos se descargan de Hugging Face (~1 GB) y quedan en
 caché. Las pruebas automáticas no los cargan: usan sustitutos.
@@ -170,10 +187,19 @@ IA a partir de los documentos oficiales de Prebel (RAG con Ollama, el
 "Nivel 2, Agentic"), le pregunta primero a `model/rrhh_api.py` (el mismo
 modelo que usa el portal) si tiene una respuesta segura del FAQ ficticio
 (el "Nivel 1, ML", < 1 s) — y solo si no la tiene, sigue con el RAG. Junto
-con la búsqueda por palabras clave del portal ("Nivel 0, Predictivo"), los
-tres niveles forman una sola cadena: barato y rápido primero, la IA que
-redacta (más lenta, ~20 s) solo cuando hace falta. Ver "El encadenamiento de
-3 niveles" en `CONSTITUTION.md`.
+con su propio detector de saludo/menú ("Nivel 0, Predictivo"), los tres
+niveles forman la cadena **propia de n8n**: barato y rápido primero, la IA
+que redacta (más lenta, ~20 s) solo cuando hace falta.
+
+Esta cadena es independiente de la que ahora orquesta
+`model/orquestador.py` del lado de Python (ver "Cómo funciona el modelo"
+arriba): n8n solo lee `confianza` y `reply` de `/reply`, así que para n8n
+el comportamiento es el mismo de siempre. Las dos cadenas pueden, más
+adelante, conectarse (este mismo cerebro puede servir como backend del
+conector LLM de Python, vía MCP) pero hoy corren por separado. El mapa
+completo de los dos caminos, lado a lado, está en
+[`FLUJOS.md`](FLUJOS.md); el detalle de la cadena propia de n8n sigue en
+"El encadenamiento de 3 niveles" de `CONSTITUTION.md` y en `n8n/README.md`.
 
 Para que el cerebro (en el servidor del equipo) pueda llamar a
 `model/rrhh_api.py`, este se empaqueta con el `Dockerfile` de esta carpeta y
@@ -197,13 +223,19 @@ de [`n8n/README.md`](n8n/README.md) para el procedimiento.
 ## Estructura
 
 - `dist/` — sitio estático (HTML, CSS y JS). No tiene paso de compilación.
-- `model/` — `rrhh_bot.py`, `rrhh_api.py` (Flask en `127.0.0.1:5000`,
-  consumidor desde el navegador), `whatsapp_service.py` (Flask en
-  `WA_SERVICE_PORT`, consumidor desde un entorno compatible con la WhatsApp
-  Cloud API — ver sección **Canal de WhatsApp** más abajo), `faq_rrhh.json`
-  (contenido del FAQ), `empleados_mock.json` (los 4 perfiles ficticios, única
-  fuente de los datos de persona — `catalogo.py` solo los lee y exporta) y
-  `entrenar.py` (cachea embeddings y recalibra el umbral de similitud — ver
+- `model/` — `rrhh_bot.py` (capa ML/semántica), `orquestador.py` (decide
+  predictivo/ML/LLM por encima de `rrhh_bot.py`, ver [`FLUJOS.md`](FLUJOS.md)),
+  `conectores.py` (conector LLM intercambiable, vía MCP),
+  `configuracion.py` + `arquitectura.json` (umbrales editables de la
+  cadena), `retroalimentacion.py` (cola de preguntas que el LLM resolvió y
+  las capas anteriores no tenían, para revisión manual), `rrhh_api.py`
+  (Flask en `127.0.0.1:5000`, consumidor desde el navegador),
+  `whatsapp_service.py` (Flask en `WA_SERVICE_PORT`, consumidor desde un
+  entorno compatible con la WhatsApp Cloud API — ver sección **Canal de
+  WhatsApp** más abajo), `faq_rrhh.json` (contenido del FAQ),
+  `empleados_mock.json` (los 4 perfiles ficticios, única fuente de los
+  datos de persona — `catalogo.py` solo los lee y exporta) y `entrenar.py`
+  (cachea embeddings y recalibra el umbral de similitud — ver
   [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
 - `n8n/` — canal de WhatsApp y burbuja de chat del portal en n8n (flujos
   exportados + scripts de la base de conocimiento). Ver
@@ -239,6 +271,10 @@ API sí se descargan ~1 GB de pesos de modelo desde Hugging Face (ver más abajo
 Ninguna de estas herramientas hace falta para lo de arriba: Ollama (local) u
 OpenAI/Claude/Gemini (con su clave de API) son **solo** para `entrenar.py
 --augmentar`, que es opcional — ver [`MODEL_TRAINING.md`](MODEL_TRAINING.md).
+Tampoco hace falta nada extra para el conector LLM del orquestador (ver
+[`FLUJOS.md`](FLUJOS.md)): la dependencia `mcp` ya viene en
+`requirements.txt`/`requirements-dev.txt`, y sin la variable de entorno
+`LLM_CONECTOR` configurada, el orquestador nunca intenta usarlo.
 Docker tampoco hace falta para correr el portal o la API — es aparte, para
 contenerizar `model/rrhh_api.py` (ver `Dockerfile`) y para probar el canal
 n8n con una instancia local (ver sección **Canal de WhatsApp con n8n** más

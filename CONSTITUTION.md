@@ -170,6 +170,15 @@ looks right."
   in this suite.
 - Run: `pytest prebel-conecta/tests -v` from the repo root (with `.venv`
   active, `pip install -r prebel-conecta/requirements-dev.txt`).
+- `model/configuracion.py` and `model/retroalimentacion.py` keep their file
+  path in a module-level `RUTA` precisely so tests can `monkeypatch.setattr`
+  it to a `tmp_path` instead of touching the real `model/arquitectura.json`
+  or `model/retroalimentacion.json` — never point a test at the real files
+  (see `tests/test_configuracion.py`, `tests/test_retroalimentacion.py` for
+  the pattern). The real `model/conectores.py` MCP path is never exercised
+  in this suite either — its private transport call is patched directly
+  (see `tests/test_conectores.py`); an actual MCP server is a manual/
+  integration concern, same spirit as the real ML models above.
 
 ### JS unit tests (Node's built-in `node:test`) — pure logic only
 
