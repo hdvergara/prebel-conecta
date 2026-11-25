@@ -11,6 +11,8 @@ model/retroalimentacion.json es estado generado en ejecución, no una fuente
 de datos curada -- está en .gitignore, igual que model/faq_embeddings.pt.
 """
 import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,7 +27,25 @@ def registrar(pregunta: str, respuesta: str, contexto: dict) -> None:
         "contexto": contexto,
         "registrado_en": datetime.now(timezone.utc).isoformat(),
     })
-    RUTA.write_text(json.dumps(pendientes, ensure_ascii=False, indent=2), encoding="utf-8")
+    _escribir_atomico(pendientes)
+
+
+def _escribir_atomico(pendientes: list) -> None:
+    """Escribe en un archivo temporal y lo renombra encima de RUTA
+    (os.replace es atómico en el mismo disco), no RUTA.write_text()
+    directo -- si el proceso se interrumpe a mitad de una escritura
+    directa, o dos requests escriben a la vez, el JSON puede quedar
+    truncado/corrupto, y listar_pendientes() lo descartaría en silencio
+    (devuelve [] ante JSON inválido), perdiendo la retroalimentación ya
+    registrada."""
+    fd, nombre_temporal = tempfile.mkstemp(dir=RUTA.parent, prefix=".retroalimentacion-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as archivo_temporal:
+            json.dump(pendientes, archivo_temporal, ensure_ascii=False, indent=2)
+        os.replace(nombre_temporal, RUTA)
+    except Exception:
+        Path(nombre_temporal).unlink(missing_ok=True)
+        raise
 
 
 def listar_pendientes() -> list:

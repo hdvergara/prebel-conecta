@@ -45,6 +45,17 @@ def test_registrar_accumulates_multiple_entries(tmp_path, monkeypatch):
     assert [p["pregunta"] for p in pendientes] == ["pregunta uno", "pregunta dos"]
 
 
+def test_registrar_leaves_no_stray_temp_file_behind(tmp_path, monkeypatch):
+    """Given a successful registrar() call.
+    When se revisa el directorio después.
+    Then solo queda retroalimentacion.json -- ningún archivo temporal de la
+    escritura atómica (ver _escribir_atomico) sobrevive a una escritura
+    exitosa."""
+    monkeypatch.setattr(retroalimentacion, "RUTA", tmp_path / "retroalimentacion.json")
+    retroalimentacion.registrar("una pregunta", "una respuesta", {})
+    assert [p.name for p in tmp_path.iterdir()] == ["retroalimentacion.json"]
+
+
 def test_listar_pendientes_recovers_from_a_corrupted_file(tmp_path, monkeypatch):
     """Given un archivo de retroalimentación con JSON inválido.
     When listar_pendientes() se llama.

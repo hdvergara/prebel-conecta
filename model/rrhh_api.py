@@ -59,7 +59,7 @@ def reply():
     if not text:
         return jsonify(reply=bot.fallback, ruta=None, area=None, confianza=None,
                         sentimiento=None, guia=None, tipo=None, capa=None)
-    resultado = orquestador.responder_pregunta(text, pedir_continuar=bool(body.get("seguir")))
+    resultado = orquestador.responder_pregunta(text, pedir_continuar=body.get("seguir") is True)
     return jsonify(
         reply=resultado["respuesta"], ruta=resultado["ruta"], area=resultado["area"],
         confianza=resultado["confianza"], sentimiento=resultado["sentimiento"],

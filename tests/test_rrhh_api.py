@@ -97,6 +97,24 @@ def test_reply_passes_seguir_through_to_the_orchestrator(client):
     assert body["tipo"] == "generado"
 
 
+def test_reply_treats_a_falsy_looking_string_in_seguir_as_not_asking_to_continue(client):
+    """Given a question the ML layer already answers with confidence
+    (an exact registered FAQ phrasing), and "seguir": "false" -- a
+    non-empty string, truthy in Python, but clearly meant as "no" by
+    whoever sent it.
+    When /reply handles it.
+    Then it is NOT treated as a request to escalate (capa is not 'llm') --
+    bool("false") would wrongly be True; the contract requires the literal
+    JSON boolean true."""
+    import rrhh_api
+
+    rrhh_api.orquestador.conector = type(
+        "ConectorQueNuncaDeberiaLlamarse", (), {"responder": lambda self, pregunta, contexto: "No debería verse."}
+    )()
+    resp = client.post("/reply", json={"text": "¿Cómo solicito vacaciones?", "seguir": "false"})
+    assert resp.get_json()["capa"] != "llm"
+
+
 def test_reply_response_carries_a_cors_header(client):
     """Given the default local host (RRHH_API_HOST unset, so 127.0.0.1).
     When /reply responds to a cross-origin request.

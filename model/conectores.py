@@ -12,7 +12,19 @@ infraestructura del equipo, fuera de este repo; esta clase ya queda lista
 para hablarle a cualquiera que exponga la tool esperada.
 """
 import os
+import shlex
 from abc import ABC, abstractmethod
+
+
+def _partes_comando(comando: str) -> list:
+    """shlex.split, no str.split: MCP_SERVIDOR_CMD puede traer un argumento
+    entre comillas con espacios adentro (p. ej. 'servidor --config "ruta
+    con espacios"') -- split() partiría eso por cada espacio, no solo entre
+    argumentos reales. shlex usa reglas de shell POSIX (la barra invertida
+    escapa, no es un separador de ruta) -- en Windows, evitar barras
+    invertidas sin comillas en MCP_SERVIDOR_CMD; usar barras normales o
+    comillas si el comando las necesita."""
+    return shlex.split(comando)
 
 
 class ConectorLLM(ABC):
@@ -60,7 +72,9 @@ class ConectorMCP(ConectorLLM):
             from mcp.client.stdio import StdioServerParameters, stdio_client
 
             if self.comando:
-                partes = self.comando.split()
+                partes = _partes_comando(self.comando)
+                if not partes:
+                    return None
                 params = StdioServerParameters(command=partes[0], args=partes[1:])
                 transporte = stdio_client(params)
             else:
