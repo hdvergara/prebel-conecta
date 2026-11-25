@@ -1,7 +1,9 @@
 """Unit tests for model/retroalimentacion.py: la cola de candidatas para
 revisión manual, nunca auto-promovidas a faq_rrhh.json.
 """
+import importlib
 import json
+import sys
 import threading
 
 import retroalimentacion
@@ -111,3 +113,17 @@ def test_concurrent_registrar_calls_do_not_lose_either_entry(tmp_path, monkeypat
 
     preguntas = {p["pregunta"] for p in retroalimentacion.listar_pendientes()}
     assert preguntas == {"pregunta 0", "pregunta 1"}
+
+
+def test_ruta_uses_retroalimentacion_dir_env_var_when_set(tmp_path, monkeypatch):
+    """Given RETROALIMENTACION_DIR apuntando a un directorio (p. ej. un
+    volumen montado en el contenedor, ver docker-compose.yml).
+    When el módulo calcula RUTA.
+    Then usa ese directorio en vez de junto a retroalimentacion.py."""
+    monkeypatch.setenv("RETROALIMENTACION_DIR", str(tmp_path))
+    try:
+        recargado = importlib.reload(retroalimentacion)
+        assert recargado.RUTA == tmp_path / "retroalimentacion.json"
+    finally:
+        monkeypatch.delenv("RETROALIMENTACION_DIR", raising=False)
+        importlib.reload(sys.modules["retroalimentacion"])

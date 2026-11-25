@@ -107,7 +107,10 @@ varias formas de preguntarlo, una respuesta, y a veces una ruta y un área.
 Por encima de `RRHHBot`, `model/orquestador.py` decide si esa respuesta
 semántica ya basta o si hace falta escalar: con más de 95% de similitud se
 confía en ella directo; entre 75% y 95% se usa tal cual; por debajo de 75%
-(o si quien llama pide seguir buscando) se escala a un conector LLM
+(o si quien llama pide seguir buscando), antes de escalar de verdad revisa
+si una pregunta parecida ya la resolvió el conector LLM antes
+(`model/rag_retroalimentacion.py`, umbral 85%) y la reusa sin volver a
+llamarlo; si no hay nada parecido, sí escala a un conector LLM
 intercambiable (hoy, vía MCP -- apagado por defecto, así que esto no
 cambia nada si no se configura). El detalle completo de esa cadena, con
 diagrama, está en [`FLUJOS.md`](FLUJOS.md) y en `CONSTITUTION.md` (R8/R9).
@@ -228,7 +231,9 @@ de [`n8n/README.md`](n8n/README.md) para el procedimiento.
   `conectores.py` (conector LLM intercambiable, vía MCP),
   `configuracion.py` + `arquitectura.json` (umbrales editables de la
   cadena), `retroalimentacion.py` (cola de preguntas que el LLM resolvió y
-  las capas anteriores no tenían, para revisión manual), `rrhh_api.py`
+  las capas anteriores no tenían, para revisión manual),
+  `rag_retroalimentacion.py` (reusa esas respuestas por similitud antes de
+  volver a llamar al LLM, ver [`FLUJOS.md`](FLUJOS.md)), `rrhh_api.py`
   (Flask en `127.0.0.1:5000`, consumidor desde el navegador),
   `whatsapp_service.py` (Flask en `WA_SERVICE_PORT`, consumidor desde un
   entorno compatible con la WhatsApp Cloud API — ver sección **Canal de
@@ -240,9 +245,12 @@ de [`n8n/README.md`](n8n/README.md) para el procedimiento.
 - `n8n/` — canal de WhatsApp y burbuja de chat del portal en n8n (flujos
   exportados + scripts de la base de conocimiento). Ver
   [`n8n/README.md`](n8n/README.md).
-- `Dockerfile` — empaqueta `model/rrhh_api.py` para desplegarlo junto a n8n
-  y Ollama (Nivel 1 de la cadena de 3 niveles, ver más abajo); no se usa
-  para correr el portal localmente, eso sigue siendo `iniciar-conecta.ps1`.
+- `Dockerfile` + `docker-compose.yml` — empaquetan la cadena completa
+  (`rrhh_api.py` + `orquestador.py` + el conector) como un solo monolito
+  desplegable (`docker compose up --build`, puerto `5000`), o para
+  desplegarlo junto a n8n y Ollama como Nivel 1 de su propia cadena (ver
+  más abajo); no se usan para correr el portal localmente, eso sigue
+  siendo `iniciar-conecta.ps1`.
 - `catalogo.py` — escribe `dist/catalogo.js` y `dist/faq.js` desde
   `model/empleados_mock.json` y `model/faq_rrhh.json`.
 - `iniciar-conecta.ps1` — levanta la API y el sitio con un solo comando.

@@ -14,8 +14,9 @@ pregunta** (no el despliegue, sino el flujo en tiempo de ejecución), ver
 | Componente | Qué es | Dónde corre | Documentación |
 |---|---|---|---|
 | Portal estático | `dist/`: HTML/CSS/JS, perfil, trámites, búsqueda por palabras clave | GitHub Pages (público) o cualquier servidor estático local | `README.md` |
-| Capa semántica + orquestador | `model/rrhh_api.py` + `model/rrhh_bot.py` (elige una respuesta del FAQ ficticio) + `model/orquestador.py` (decide predictivo/ML/LLM, 95%/75%) | PC del operador (`127.0.0.1`), o contenerizado (ver `Dockerfile`) | `README.md`, `FLUJOS.md`, `MODEL_TRAINING.md` |
+| Capa semántica + orquestador | `model/rrhh_api.py` + `model/rrhh_bot.py` (elige una respuesta del FAQ ficticio) + `model/orquestador.py` (decide predictivo/ML/LLM, 95%/75%) | PC del operador (`127.0.0.1`), o monolito contenerizado (`docker-compose.yml`) | `README.md`, `FLUJOS.md`, `MODEL_TRAINING.md` |
 | Conector LLM (opcional) | `model/conectores.py`: vía MCP, apagado por defecto (`LLM_CONECTOR` sin definir) | Mismo proceso que la capa semántica | `FLUJOS.md` |
+| Reuso por retroalimentación | `model/rag_retroalimentacion.py`: reusa respuestas del LLM para preguntas parecidas, por similitud (umbral 85%) | Mismo proceso; `retroalimentacion.json` persiste en el volumen de `docker-compose.yml` | `FLUJOS.md` |
 | Entrenamiento/calibración | `model/entrenar.py`: cachea embeddings, calibra el umbral, sugiere variancia nueva | PC del operador (o durante el build del `Dockerfile`) | `MODEL_TRAINING.md` |
 | Exploración de variancia | Modelos de paráfrasis locales probados para `--augmentar` | PC del operador (exploración puntual, documentada) | `MODEL_TUNING.md` |
 | Canal WhatsApp local | `model/whatsapp_service.py`: puente a un entorno compatible con WhatsApp Cloud API | PC del operador + emulador local (`whatsapp-emulator/`, fuera de este repo) | `README.md` (sección "Canal de WhatsApp") |
@@ -33,7 +34,7 @@ pregunta** (no el despliegue, sino el flujo en tiempo de ejecución), ver
 | PowerShell | incluido en Windows, o 7+ multiplataforma | `iniciar-conecta.ps1` | |
 | Cuenta de GitHub con acceso de colaborador a `hdvergara/prebel-conecta` | -- | Hacer push de ramas, abrir PRs | Pídelo a quien administre el repositorio; sin esto se puede trabajar en un fork |
 | `gh` CLI autenticado (`gh auth login`, scope `repo`) | 2.x | Crear/gestionar PRs desde la terminal | Opcional -- la interfaz web de GitHub cubre lo mismo; probado con 2.105 |
-| Docker Desktop o Docker Engine | reciente | `Dockerfile` (Tier 1), pruebas locales de n8n (§4) | Probado con Docker Desktop 29.9. **No** hace falta para correr el portal, la API o los tests -- son componentes aparte |
+| Docker Desktop o Docker Engine | reciente | Monolito (`docker-compose.yml`), `Dockerfile` (Tier 1 de n8n), pruebas locales de n8n (§4) | Probado con Docker Desktop 29.9, incluido `docker compose up --build`. **No** hace falta para correr el portal, la API o los tests -- son componentes aparte |
 | Cuenta de Docker Hub | opcional | Descargar `python:3.11-slim`, `n8nio/n8n` | Las descargas anónimas alcanzan para este proyecto; una cuenta gratuita solo ayuda si se topa el límite de descargas anónimas |
 | Cuenta de Hugging Face (`HF_TOKEN`) | opcional | Descargar los modelos preentrenados sin límite de descargas anónimas | Sin token, las descargas funcionan igual pero con límites más bajos (se ve como aviso al construir el `Dockerfile`) |
 | Acceso al servidor n8n del equipo (Coolify) | -- | Canal n8n **real** (§4), WhatsApp real vía Evolution | Acceso administrado por el equipo -- pídelo a quien gestione ese servidor; no es autoservicio |

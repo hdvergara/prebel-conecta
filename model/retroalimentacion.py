@@ -7,8 +7,11 @@ model/entrenar.py --revisar-retroalimentacion), en el mismo espíritu que
 CONSTITUTION.md R1/R4: nada entra al FAQ curado sin que alguien lo decida a
 propósito.
 
-model/retroalimentacion.json es estado generado en ejecución, no una fuente
-de datos curada -- está en .gitignore, igual que model/faq_embeddings.pt.
+retroalimentacion.json es estado generado en ejecución, no una fuente de
+datos curada -- está en .gitignore, igual que model/faq_embeddings.pt. Vive
+junto a este archivo por defecto (RETROALIMENTACION_DIR sin definir); en
+docker-compose.yml se redirige a un directorio bajo un volumen nombrado,
+para que sobreviva a un restart del contenedor -- ver ese archivo.
 """
 import json
 import os
@@ -17,7 +20,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-RUTA = Path(__file__).parent / "retroalimentacion.json"
+_DIR_ESTADO = Path(os.environ.get("RETROALIMENTACION_DIR", str(Path(__file__).parent)))
+RUTA = _DIR_ESTADO / "retroalimentacion.json"
 _PLAZO_LOCK = 5.0  # segundos antes de darse por vencido
 
 

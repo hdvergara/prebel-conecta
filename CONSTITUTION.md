@@ -65,12 +65,15 @@ orchestrates the chain, not n8n. The two thresholds below are editable data
 |---|---|---|
 | Predictive | `confianza` (from `RRHHBot.match()`) > `umbral_predictivo` (0.95) | The ML match is trusted as-is, no further step |
 | ML | `umbral_llm` (0.75) ≤ `confianza` ≤ `umbral_predictivo` | The local semantic answer is returned as-is |
-| Agentic (LLM) | `confianza` < `umbral_llm`, **or** the caller asks to continue (`seguir: true` in `/reply`'s body) | Escalates to the active LLM connector (`model/conectores.py`); if it doesn't answer, falls back to the ML answer already computed |
+| Agentic (LLM) | `confianza` < `umbral_llm`, **or** the caller asks to continue (`seguir: true` in `/reply`'s body) | First checks `model/rag_retroalimentacion.py` for a question similar enough to one already answered before (`umbral_retroalimentacion`, 0.85) — if found, reuses that answer (`capa: "retroalimentacion"`, `tipo: "reusado"`) without calling the connector again; otherwise escalates to the active LLM connector (`model/conectores.py`), falling back to the ML answer already computed if it doesn't respond |
 
 When the LLM connector answers a question the earlier tiers didn't have
 with confidence, that question/answer is queued for manual review
 (`model/retroalimentacion.py`) — never auto-promoted into `faq_rrhh.json`
-(R1/R4 still apply to anything that might end up there).
+(R1/R4 still apply to anything that might end up there). The reuse check
+above is what later *consumes* that queue automatically; it is not a
+fourth tier in this ratified chain, just an optimization inside the
+escalation step so the same question doesn't pay the LLM's cost twice.
 
 n8n's Cerebro remains reachable two ways, independent of each other: its own
 WhatsApp puertas call it directly (unaffected by this chain), and it can
@@ -147,11 +150,15 @@ style preference.
   that data, not this file or the orchestrator's code.
 - **R9 — Layer separation.** The three tiers live in separate modules that
   never import "downward": `model/rrhh_bot.py` (ML) must never import
-  `model/conectores.py` or `model/orquestador.py` (enforced by
-  `tests/test_arquitectura.py`, not just documented here). The LLM tier is
-  only ever reached through `model/conectores.py`'s `ConectorLLM` interface
-  — no other module calls a specific backend (MCP, n8n, a commercial API)
-  by name. Swapping backends means changing what the connector points to,
+  `model/conectores.py`, `model/orquestador.py`, or
+  `model/rag_retroalimentacion.py` (enforced by `tests/test_arquitectura.py`,
+  not just documented here). The LLM tier is only ever reached through
+  `model/conectores.py`'s `ConectorLLM` interface — no other module calls a
+  specific backend (MCP, n8n, a commercial API) by name.
+  `model/rag_retroalimentacion.py` never imports `rrhh_bot` either — it
+  receives the embedding model by injection (`self.bot.model`, passed by
+  `model/orquestador.py`), the only module allowed to import it. Swapping
+  backends means changing what the connector points to,
   never touching the orchestrator or the ML layer.
 
 ## 3. Harness
@@ -175,10 +182,16 @@ looks right."
   it to a `tmp_path` instead of touching the real `model/arquitectura.json`
   or `model/retroalimentacion.json` — never point a test at the real files
   (see `tests/test_configuracion.py`, `tests/test_retroalimentacion.py` for
-  the pattern). The real `model/conectores.py` MCP path is never exercised
-  in this suite either — its private transport call is patched directly
-  (see `tests/test_conectores.py`); an actual MCP server is a manual/
-  integration concern, same spirit as the real ML models above.
+  the pattern). `tests/test_orquestador.py` applies this via an `autouse`
+  fixture so every test in that file gets an isolated, empty feedback
+  queue by default (`model/rag_retroalimentacion.py` is consulted on every
+  call, so leaving this unpatched anywhere `/reply` can escalate will
+  pollute the real file — this bit a test in `tests/test_rrhh_api.py`
+  before the fixture existed; any new test that escalates must patch
+  `retroalimentacion.RUTA` too). The real `model/conectores.py` MCP path is
+  never exercised in this suite either — its private transport call is
+  patched directly (see `tests/test_conectores.py`); an actual MCP server
+  is a manual/integration concern, same spirit as the real ML models above.
 
 ### JS unit tests (Node's built-in `node:test`) — pure logic only
 

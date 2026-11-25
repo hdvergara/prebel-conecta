@@ -33,9 +33,21 @@ texto ──► RRHHBot.match(texto) ──► confianza
       (o nunca si               (o nunca si pide           (o si pide
        pide "seguir")            "seguir")                  "seguir")
               │                       │                       │
-       capa="predictivo"       capa="ml"              conector LLM (MCP)
-      (la respuesta del      (la respuesta del              │
-       ML, tal cual)          ML, tal cual)         ¿responde? ──no──► capa="ml"
+       capa="predictivo"       capa="ml"          ¿pregunta parecida ya
+      (la respuesta del      (la respuesta del     resuelta antes por el
+       ML, tal cual)          ML, tal cual)         LLM? (RAG sobre
+                                                     retroalimentacion.json,
+                                                     umbral 0.85)
+                                                             │
+                                                   sí ──► capa="retroalimentacion"
+                                                          tipo="reusado" (no llama
+                                                          al conector)
+                                                             │
+                                                            no
+                                                             │
+                                                      conector LLM (MCP)
+                                                             │
+                                                   ¿responde? ──no──► capa="ml"
                                                              │          (cae al ML
                                                             sí           ya calculado)
                                                              │
@@ -43,15 +55,20 @@ texto ──► RRHHBot.match(texto) ──► confianza
                                                     que el ML ya tenía; si la
                                                     confianza del ML era < 0.75,
                                                     se encola en retroalimentacion.json
-                                                    (revisión manual, nunca automática)
+                                                    (revisión manual, Y disponible
+                                                    para el reuso de arriba la
+                                                    próxima vez)
                                                              │
                                                       capa="llm", tipo="generado"
 ```
 
-Los dos umbrales (0.95 y 0.75) y el orden de las capas son datos editables
-en `model/arquitectura.json` (cargados por `model/configuracion.py`), no
-constantes de código -- ver CONSTITUTION.md R8/R9 para las reglas que esto
-debe respetar.
+Los umbrales (0.95, 0.75, y 0.85 para el reuso) y el orden de las capas son
+datos editables en `model/arquitectura.json` (cargados por
+`model/configuracion.py`), no constantes de código -- ver CONSTITUTION.md
+R8/R9 para las reglas que esto debe respetar. El paso de reuso
+(`model/rag_retroalimentacion.py`) no es una capa nueva en la cadena
+ratificada (Predictivo/ML/Agentic) -- es una optimización dentro del paso
+de escalada, para no pagarle al LLM dos veces por preguntas parecidas.
 
 ### Contrato de `POST /reply`
 
@@ -67,8 +84,8 @@ debe respetar.
   "confianza": 0.92 | null,
   "sentimiento": { "etiqueta": "positivo", "estrellas": 5, "confianza": 0.8 } | null,
   "guia": "..." | null,
-  "tipo": "confiado" | "acotar" | "saludo" | "grosero" | "fallback" | "generado" | null,
-  "capa": "predictivo" | "ml" | "llm" | null
+  "tipo": "confiado" | "acotar" | "saludo" | "grosero" | "fallback" | "generado" | "reusado" | null,
+  "capa": "predictivo" | "ml" | "llm" | "retroalimentacion" | null
 }
 ```
 
@@ -101,6 +118,26 @@ externa, nunca escala.
 Hoy no existe un servidor MCP real montado para este proyecto (ni
 envolviendo a Ollama ni al RAG de n8n) -- es trabajo de infraestructura
 del equipo, fuera de este repo.
+
+### Reuso por retroalimentación (capa "retroalimentacion")
+
+`model/rag_retroalimentacion.py` -- sin configuración propia, siempre
+activo: antes de llamar al conector, compara por similitud semántica
+(mismo modelo de embeddings que la capa ML, inyectado, no uno propio)
+contra las preguntas ya guardadas en `retroalimentacion.json`. Si la mejor
+coincidencia supera `umbral_retroalimentacion` (0.85), se reusa esa
+respuesta sin tocar el conector. La cola es chica (de tamaño de demo) --
+se recalculan los embeddings en cada búsqueda, sin caché, a propósito.
+
+### Despliegue del monolito
+
+`docker-compose.yml` (raíz del repo) empaqueta esta cadena completa como
+un solo servicio desplegable (decisión #3 de la ronda de reducción
+primaria del modelo) -- `docker compose up --build` la levanta localmente
+en `http://localhost:5000`. Un volumen nombrado persiste
+`retroalimentacion.json` entre reinicios del contenedor (sin él, el reuso
+de arriba se reiniciaría vacío cada vez); n8n y Ollama quedan deliberadamente
+fuera de este archivo, como infraestructura aparte.
 
 ## 3. La cadena de n8n (flujos 4 y 5): independiente, sin cambios
 
@@ -153,6 +190,8 @@ cadenas son completamente independientes.
 | Spec-Doc editable (umbrales) | `model/arquitectura.json` + `model/configuracion.py` |
 | Conector LLM | `model/conectores.py` |
 | Cola de retroalimentación | `model/retroalimentacion.py` |
+| Reuso por similitud sobre esa cola | `model/rag_retroalimentacion.py` |
 | Contrato HTTP | `model/rrhh_api.py` (`POST /reply`) |
 | Canal WhatsApp local | `model/whatsapp_service.py` |
 | Cadena propia de n8n | `n8n/workflows/03-cerebro-ia.json` + `n8n/README.md` |
+| Monolito desplegable | `Dockerfile` + `docker-compose.yml` |
