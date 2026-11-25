@@ -10,7 +10,7 @@ unificación (no versionados todavía).
 
 | # | Flujo | Entra por | Quién decide la respuesta |
 |---|---|---|---|
-| 1 | Portal, búsqueda predictiva | Escribir en el buscador | Solo `dist/app.js`'s `rank()` -- JS puro, sin red |
+| 1 | Portal, búsqueda predictiva | Escribir en el buscador | Solo `rank()` de `dist/app.js` -- JS puro, sin red |
 | 2 | Portal, "Preguntar al asistente" | Enter sin sugerencia, o clic en el botón | `model/orquestador.py` (vía `POST /reply`) |
 | 3 | WhatsApp local (`whatsapp_service.py`) | Webhook del emulador/Meta | `RRHHBot.match()` **directo** -- no pasa por el orquestador, ver nota en §4 |
 | 4 | WhatsApp real/emulador por n8n (puertas 01/02) | Webhook de n8n | La cadena **propia de n8n** (su Cerebro), independiente de la de Python |
