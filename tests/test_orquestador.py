@@ -98,6 +98,23 @@ def test_connector_unavailable_falls_back_gracefully_to_the_ml_answer():
     assert resultado["respuesta"] == "Respuesta del ML."
 
 
+def test_a_feedback_queue_failure_never_breaks_the_llm_answer(monkeypatch):
+    """Given confianza = 0.40 (escala al LLM, que responde) y registrar()
+    lanza algo que no es OSError (p. ej. TimeoutError, si el lock de
+    model/retroalimentacion.py quedó colgado).
+    When responder_pregunta() se llama.
+    Then la respuesta del LLM se devuelve igual -- esta cola es una
+    comodidad, nunca debe tumbar una respuesta que ya está lista."""
+    import orquestador
+
+    monkeypatch.setattr(orquestador, "registrar", lambda *a, **k: (_ for _ in ()).throw(TimeoutError("lock colgado")))
+    conector = ConectorFalso(respuesta="Respuesta del LLM a pesar del fallo de la cola.")
+    orq = Orquestador(BotFalso(confianza=0.40), conector)
+    resultado = orq.responder_pregunta("una pregunta cualquiera")
+    assert resultado["respuesta"] == "Respuesta del LLM a pesar del fallo de la cola."
+    assert resultado["capa"] == "llm"
+
+
 def test_pedir_continuar_skips_the_threshold_and_goes_straight_to_the_llm():
     """Given confianza = 0.97 (normalmente respondería directo), pero
     pedir_continuar=True (el usuario pidió seguir buscando).

@@ -40,11 +40,13 @@ class Orquestador:
             # El LLM respondió algo que las capas anteriores no tenían con
             # confianza -- se guarda como candidata para que el equipo la
             # revise (ver model/retroalimentacion.py), nunca se auto-promueve.
-            # Si falla (disco lleno, permisos...), nunca debe tumbar una
-            # respuesta que ya está lista para el usuario.
+            # Si falla (disco lleno, permisos, el lock colgado -- TimeoutError,
+            # no solo OSError...), nunca debe tumbar una respuesta que ya está
+            # lista para el usuario: esta cola es una comodidad, no un
+            # requisito para responder.
             try:
                 registrar(texto, respuesta_llm, contexto)
-            except OSError:
+            except Exception:
                 pass
 
         # "Retorno en forma inversa": la respuesta del LLM se envuelve con
