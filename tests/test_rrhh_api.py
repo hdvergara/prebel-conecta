@@ -34,12 +34,19 @@ def client():
 def test_reply_with_text_returns_full_json_contract(client):
     """Given a POST with non-empty text.
     When /reply handles it.
-    Then the response is 200 JSON with exactly the five documented keys."""
+    Then the response is 200 JSON with exactly the documented keys,
+    including 'guia', 'tipo' and 'capa' (ver ANALISIS_UNIFICACION.md and
+    REDUCCION_PRIMARIA_DEL_MODELO.md -- el orquestador siempre informa cuál
+    capa respondió, sin que el llamador tenga que adivinarlo)."""
     resp = client.post("/reply", json={"text": "hola"})
     assert resp.status_code == 200
     body = resp.get_json()
-    assert set(body) == {"reply", "ruta", "area", "confianza", "sentimiento"}
+    assert set(body) == {"reply", "ruta", "area", "confianza", "sentimiento", "guia", "tipo", "capa"}
     assert isinstance(body["reply"], str)
+    # Sin LLM_CONECTOR configurado (el default en pruebas), el orquestador
+    # nunca escala de verdad al conector -- responde con lo que el ML ya
+    # tenía, capa='ml'.
+    assert body["capa"] == "ml"
 
 
 def test_reply_with_empty_text_returns_fallback_with_null_fields(client):
@@ -55,6 +62,9 @@ def test_reply_with_empty_text_returns_fallback_with_null_fields(client):
     assert body["area"] is None
     assert body["confianza"] is None
     assert body["sentimiento"] is None
+    assert body["guia"] is None
+    assert body["tipo"] is None
+    assert body["capa"] is None
 
 
 def test_reply_with_missing_body_is_treated_as_empty_text(client):
@@ -66,6 +76,25 @@ def test_reply_with_missing_body_is_treated_as_empty_text(client):
     resp = client.post("/reply", content_type="application/json")
     assert resp.status_code == 200
     assert resp.get_json()["ruta"] is None
+
+
+def test_reply_passes_seguir_through_to_the_orchestrator(client):
+    """Given a low-confidence question and a connector wired to answer, and
+    the request includes "seguir": true.
+    When /reply handles it.
+    Then the orchestrator escalates to the connector (capa='llm') and its
+    answer, enriched with what the ML layer already knew, comes back
+    through the HTTP contract end to end."""
+    import rrhh_api
+
+    rrhh_api.orquestador.conector = type(
+        "ConectorDePrueba", (), {"responder": lambda self, pregunta, contexto: "Respuesta generada de prueba."}
+    )()
+    resp = client.post("/reply", json={"text": "una pregunta que el ml no resuelve con confianza", "seguir": True})
+    body = resp.get_json()
+    assert body["reply"] == "Respuesta generada de prueba."
+    assert body["capa"] == "llm"
+    assert body["tipo"] == "generado"
 
 
 def test_reply_response_carries_a_cors_header(client):

@@ -9,6 +9,7 @@ __pycache__/
 # runtime/log artifacts
 backend.log
 model/faq_embeddings.pt
+model/retroalimentacion.json
 
 # e2e (prebel-conecta/e2e/)
 e2e/node_modules/

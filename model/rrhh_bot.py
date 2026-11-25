@@ -184,6 +184,11 @@ class RRHHBot:
     def match(self, text: str) -> dict:
         """Intención detectada: respuesta más la ruta/área de la app ligadas a esa pregunta,
         la confianza de la coincidencia semántica y el sentimiento del mensaje.
+        'tipo' distingue, sin tener que comparar el texto de 'respuesta' contra
+        self.fallback/self.saludo/self.grosero, cuál de los caminos de abajo
+        se tomó: "confiado" (coincidencia segura) o, sin ella, "grosero" /
+        "acotar" / "saludo" / "fallback" -- lo usa model/orquestador.py para
+        decidir sin adivinar (ver CONSTITUTION.md R9).
 
         Sin una coincidencia segura (confianza < THRESHOLD), en vez de caer
         siempre al mismo mensaje de respaldo frío, se prioriza así: (1) tono
@@ -208,14 +213,14 @@ class RRHHBot:
         if confianza < THRESHOLD:
             candidatos = self._candidatos_sintacticos(text)
             if sentimiento["etiqueta"] == "negativo":
-                respuesta = self.grosero
+                respuesta, tipo = self.grosero, "grosero"
             elif candidatos:
-                respuesta = self._respuesta_para_acotar(candidatos)
+                respuesta, tipo = self._respuesta_para_acotar(candidatos), "acotar"
             elif self._es_saludo(text):
-                respuesta = self.saludo
+                respuesta, tipo = self.saludo, "saludo"
             else:
-                respuesta = self.fallback
-            return {"respuesta": respuesta, "ruta": None, "area": None, "confianza": confianza, "sentimiento": sentimiento, "guia": None}
+                respuesta, tipo = self.fallback, "fallback"
+            return {"respuesta": respuesta, "ruta": None, "area": None, "confianza": confianza, "sentimiento": sentimiento, "guia": None, "tipo": tipo}
         mejor_tema = self.owner[best]
         temas_en_disputa = {
             self.owner[i] for i in range(len(scores))
@@ -227,7 +232,7 @@ class RRHHBot:
         # "guia" es el paso accionable por su cuenta, sin la frase que remite
         # a "revisa tu perfil" -- la usan canales que ya pueden dar el dato
         # real (ver model/whatsapp_service.py) para no repetir ambas cosas.
-        return {"respuesta": item["respuesta"], "ruta": item.get("ruta"), "area": item.get("area"), "confianza": confianza, "sentimiento": sentimiento, "guia": item.get("guia")}
+        return {"respuesta": item["respuesta"], "ruta": item.get("ruta"), "area": item.get("area"), "confianza": confianza, "sentimiento": sentimiento, "guia": item.get("guia"), "tipo": "confiado"}
 
     def reply(self, text: str) -> str:
         return self.match(text)["respuesta"]

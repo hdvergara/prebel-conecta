@@ -28,8 +28,14 @@ local, por qué se filtran sus sugerencias) para el detalle de cada uno y
 cómo configurar su clave. Es opcional: sin el motor elegido disponible, el
 resto del script funciona igual.
 
+Con --revisar-retroalimentacion lista las preguntas que el conector LLM
+respondió y las capas anteriores no tenían con confianza (ver
+model/orquestador.py y model/retroalimentacion.py) -- solo para revisión;
+no las agrega sola a faq_rrhh.json.
+
 Uso (PowerShell):
     python model/entrenar.py
+    python model/entrenar.py --revisar-retroalimentacion
     python model/entrenar.py --augmentar
     python model/entrenar.py --augmentar --motor ollama --modelo qwen2.5:7b-instruct
     python model/entrenar.py --augmentar --motor claude --modelo claude-haiku-5-5
@@ -223,7 +229,25 @@ def main():
                          help="Motor de IA para --augmentar (ver MODEL_TRAINING.md)")
     parser.add_argument("--modelo", default=None,
                          help="Modelo dentro del motor elegido (por defecto, uno razonable por motor)")
+    parser.add_argument("--revisar-retroalimentacion", action="store_true",
+                         help="Lista la retroalimentación pendiente de revisión (ver model/retroalimentacion.py)")
     args = parser.parse_args()
+
+    if args.revisar_retroalimentacion:
+        from retroalimentacion import listar_pendientes
+
+        pendientes = listar_pendientes()
+        if not pendientes:
+            print("No hay retroalimentación pendiente por revisar.")
+        else:
+            print(f"{len(pendientes)} pregunta(s) resuelta(s) por el conector LLM, pendientes de revisión")
+            print("(no se agregan solas a faq_rrhh.json -- decide si corresponde incorporarlas):\n")
+            for p in pendientes:
+                print(f"- [{p['registrado_en']}] {p['pregunta']}")
+                print(f"    -> {p['respuesta']}")
+                if p.get("contexto"):
+                    print(f"    contexto: {p['contexto']}")
+        return
 
     faq = cargar_faq()
 

@@ -1,0 +1,5 @@
+{
+  "umbral_predictivo": 0.95,
+  "umbral_llm": 0.75,
+  "orden_capas": ["predictivo", "ml", "llm"]
+}
