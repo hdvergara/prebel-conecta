@@ -67,6 +67,19 @@ def test_reply_with_empty_text_returns_fallback_with_null_fields(client):
     assert body["capa"] is None
 
 
+@pytest.mark.parametrize("valor_no_string", [None, 123, ["lista"], {"obj": 1}])
+def test_reply_with_a_non_string_text_is_treated_as_empty_instead_of_500(client, valor_no_string):
+    """Given a POST where "text" is present but isn't a string (null, a
+    number, a list...) -- a malformed client, not an empty field.
+    When /reply handles it.
+    Then it degrades to the same empty-text fallback branch (200, with
+    bot.fallback) instead of raising -- .strip() doesn't exist on those
+    types, so calling it unconditionally would 500."""
+    resp = client.post("/reply", json={"text": valor_no_string})
+    assert resp.status_code == 200
+    assert resp.get_json()["ruta"] is None
+
+
 def test_reply_with_missing_body_is_treated_as_empty_text(client):
     """Given a POST with no JSON body at all.
     When /reply handles it.

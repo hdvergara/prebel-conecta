@@ -55,7 +55,8 @@ orquestador = Orquestador(bot)
 @app.post("/reply")
 def reply():
     body = request.get_json(silent=True) or {}
-    text = body.get("text", "").strip()
+    text = body.get("text", "")
+    text = text.strip() if isinstance(text, str) else ""
     if not text:
         return jsonify(reply=bot.fallback, ruta=None, area=None, confianza=None,
                         sentimiento=None, guia=None, tipo=None, capa=None)
