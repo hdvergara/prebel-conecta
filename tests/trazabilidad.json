@@ -124,11 +124,13 @@
     ]
   },
   "R12": {
-    "huella": "b59a59d55d96a903",
+    "huella": "4654edc90f2d08b7",
     "citan": [
       "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
       "SETUP_AND_DEPLOY.md",
-      "n8n/INSTRUCCIONES_DEV_N8N.md"
+      "n8n/INSTRUCCIONES_DEV_N8N.md",
+      "tests/test_documentacion.py"
     ]
   },
   "R13": {

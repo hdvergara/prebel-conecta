@@ -171,6 +171,9 @@ pip install -r requirements-dev.txt
 pytest tests/test_documentacion.py -v
 ```
 
+Córrelas en un clon con git. En una copia sin `.git` algunas se saltan, y un
+salto no cuenta como verde.
+
 Si falla la prueba de trazabilidad, **no edites `tests/trazabilidad.json` para
 silenciarla**. Te indica qué reglas revisar: sigue el procedimiento de R0 y
 actualiza el registro solo después. Antes de abrir el PR, las tres suites deben

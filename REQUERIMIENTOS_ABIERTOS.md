@@ -26,6 +26,7 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 | RA-05 | Confirmar que la presunción agnóstica decide quién alcanza una superficie, no lo que esta puede hacer en condiciones controladas (acotación agregada al redactar) | CONSTITUTION §0, D10 | El equipo la aprueba o la corrige |
 | RA-06 | Confirmar que el acceso entre orígenes no admite credenciales (condición agregada a la excepción MVP) | R11, D13 | Se confirma, o se enmienda si un ambiente autentica con cookies o autenticación básica |
 | RA-37 | Confirmar cómo pesa la jerarquía normativa: usa las clases de precedencia (protección de datos, disponibilidad, comportamiento), no cuál regla originó la cadena; con peso igual no se ejecuta lo que niega la premisa | R0, D14 | El equipo lo aprueba o define otro criterio para la regla fundacional |
+| RA-40 | Confirmar que una comprobación saltada por falta de git no cuenta como verde (condición agregada al resolver la revisión del PR) | R12, D15 | El equipo la aprueba o la corrige |
 
 ## 2. Por decidir
 

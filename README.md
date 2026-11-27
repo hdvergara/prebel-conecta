@@ -341,6 +341,9 @@ Aquí está cómo correrlas y las convenciones:
   que pueda escalar debe redirigir la de `retroalimentacion`.
 - El transporte MCP se sustituye en `tests/test_conectores.py`; un servidor MCP
   real es una comprobación manual.
+- Cuatro comprobaciones de documentación necesitan git. En una copia sin `.git`
+  o sin git instalado se saltan y lo dicen (`pytest -rs` muestra el motivo). Un
+  salto no cuenta como verde (R12).
 - JS: solo funciones puras de `dist/app.js`, cargadas en un contexto `vm`.
 - E2E: cada llamada a la API se intercepta con `page.route()`. Cada prueba
   documenta Context / Given / When / Then (ver `e2e/tests/search.spec.js`).

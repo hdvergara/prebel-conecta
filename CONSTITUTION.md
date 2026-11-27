@@ -259,6 +259,9 @@ each one behaves is described in level 1.
   [`README.md`](README.md#tests).
 - Unit tests use no network and no real model weights. End-to-end tests
   intercept every call to the API, so they pass without a backend.
+- A cohesion check that needs the list of repository files may skip where there
+  is no git checkout, such as an exported copy. A skipped check is not green:
+  "done" requires it to run in a git checkout.
 - No test writes to a real data or state file: it redirects the module's path
   to a temporary one. Anything needing a real model or server is a manual
   integration check, and the PR says whether it was done.

@@ -22,6 +22,7 @@ Registro de por qué las reglas son como son. No crea reglas: las reglas viven e
 | D12 | La salvaguarda de transitividad es una regla (R0): C no puede contradecir a A por transitividad conceptual en B. La precedencia no resuelve contradicciones | R0 | Vigente |
 | D13 | Durante el MVP no se restringe el origen de las llamadas a la API desde un navegador: los ambientes no están definidos y operan en forma cruzada. Sin credenciales entre orígenes | R11 | Vigente, mientras dure el MVP |
 | D14 | Se aprueba la redacción de la salvaguarda de transitividad (RA-01) y se adopta su ejemplo formal. La derrotabilidad corrige el texto; la jerarquía normativa solo bloquea la ejecución | R0 | Vigente. Los pesos de la jerarquía están por confirmar (RA-37) |
+| D15 | Sin git, las comprobaciones que necesitan la lista de archivos se saltan con su motivo, sin lista alternativa. Un salto no cuenta como verde | R12 | Vigente. Por confirmar (RA-40) |
 
 Notas:
 
@@ -118,5 +119,7 @@ aquí no está revisada.
 | Contradicción | Jerarquía normativa (ejemplo) → R0 ("la precedencia no la resuelve") → D12 | Si la jerarquía resolviera la contradicción, un texto inconsistente quedaría válido | La jerarquía bloquea la ejecución; el texto se corrige por derrotabilidad |
 | Contradicción | Jerarquía normativa (A, la fundacional) → orden irrelevante → clases de precedencia (§0) | Si el orden no cuenta, la cadena no dice cuál es la fundacional | El peso lo dan las clases de §0; con peso igual no se ejecuta lo que niega la premisa. **Por confirmar (RA-37)** |
 | Tiempos, disponibilidad | Bloqueo por jerarquía → cadena de respuesta → R8 | Bloquear un paso podía dejar al usuario sin respuesta | El paso bloqueado cae como exige R8 |
+| Pruebas | Salto sin git → "verde" (R12) → trazabilidad (R13) → R0 | Un salto se vería como verde y la protección de R0 desaparecería sin aviso | R12: un salto no cuenta como verde |
+| Datos | Lista alternativa sin git → archivos ignorados → R1, R13 (borradores) | Recorrer el disco habría leído documentos reales y borradores locales | No hay lista alternativa |
 | Portal | R11 → R2 | Sin superficie pública, el recuadro del modelo no responde en una copia publicada | Lo permite R2: el portal funciona sin backend |
 | Pruebas | R12 → R2 | Las pruebas de extremo a extremo no podían depender del backend | Interceptan toda llamada a la API |

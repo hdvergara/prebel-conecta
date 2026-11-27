@@ -6,8 +6,11 @@ quién se apoya en ella.
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
+
+import pytest
 
 RAIZ = Path(__file__).resolve().parents[1]
 EXTENSIONES = {".md", ".py", ".js", ".cjs", ".json", ".yml", ".yaml", ".ps1"}
@@ -17,8 +20,25 @@ BORRADORES = [nombre + ".md" for nombre in
               ("ANALISIS_" + "UNIFICACION", "RESUMEN_" + "UNIFICACION_EQUIPO", "REDUCCION_" + "PRIMARIA_DEL_MODELO")]
 
 
+def _sin_git():
+    if not (RAIZ / ".git").exists():  # carpeta, o archivo en un worktree
+        return "no es un repositorio git"
+    if shutil.which("git") is None:
+        return "git no está instalado"
+    return None
+
+
 def _archivos():
-    """Versionados más los nuevos todavía sin confirmar; nunca los ignorados."""
+    """Versionados más los nuevos todavía sin confirmar; nunca los ignorados.
+
+    Sin Git (copia exportada o vendorizada, o git sin instalar) las pruebas que
+    necesitan esta lista se saltan. No se recorre el disco como alternativa:
+    sin Git no se sabe qué está ignorado, y entrarían borradores locales,
+    .specs/ o .venv/. Un salto no cuenta como verde (CONSTITUTION.md R12). En
+    un repositorio con git instalado, un error de git sigue fallando."""
+    motivo = _sin_git()
+    if motivo:
+        pytest.skip(f"{motivo}: sin la lista de archivos esta comprobación no se ejecuta (no cuenta como verde)")
     salida = subprocess.run(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
         cwd=RAIZ, capture_output=True, check=True,
