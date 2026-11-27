@@ -137,7 +137,7 @@ function show(title,body) {
   if(!modal.open) modal.showModal();
 }
 function action(route,label){return '<button class="primary" data-route="'+route+'">'+label+'</button>';}
-const MODEL_API = 'http://127.0.0.1:5000/reply';
+const MODEL_API = window.PREBEL_MODEL_API || 'http://127.0.0.1:5000/reply';
 function escapeHtml(text) { return text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function modelReply(text) {
   const controller = new AbortController();
