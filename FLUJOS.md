@@ -201,7 +201,7 @@ estaba activo en el servidor del equipo se revisó el 2026-11-27 (RA-21).
   certificado laboral superan 0.65, así que no llegaban al RAG. Desde D16 el
   Cerebro descarta las respuestas con marcadores: 13 de las 15 entradas van al
   RAG. Las dos sin marcadores (crédito de vivienda y retiro de cesantías) siguen
-  en el Nivel 1 (RA-42). En el portal, WhatsApp local y la API el FAQ sigue
+  en el Nivel 1 por decisión del equipo (RA-42). En el portal, WhatsApp local y la API el FAQ sigue
   respondiendo igual. Que esos temas estén en los documentos reales lo reporta
   el equipo; no se ha verificado aquí.
 - **13 de las 15 entradas del FAQ tienen marcadores** entre corchetes. R5
