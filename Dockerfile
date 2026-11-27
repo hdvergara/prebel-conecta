@@ -1,13 +1,13 @@
 # Imagen del monolito desplegable (model/rrhh_api.py + model/orquestador.py
-# + el conector LLM, ver REDUCCION_PRIMARIA_DEL_MODELO.md decisión #3) --
-# no para exponer al público. El Cerebro de n8n
+# + el conector LLM, ver DECISIONES.md D3).
+# Publicarlo solo es posible en las condiciones de CONSTITUTION.md R11. El Cerebro de n8n
 # (n8n/workflows/03-cerebro-ia.json) también la llama, como su propio Tier 1
 # ("ML"), antes de su propio RAG+LLM (Tier 2, "Agentic"); ver n8n/README.md.
 #
 # Construir y probar localmente (o usar docker-compose.yml, que ya incluye
 # el volumen de retroalimentación):
 #   docker build -t prebel-rrhh-api .
-#   docker run --rm -p 5000:5000 prebel-rrhh-api
+#   docker run --rm -p 127.0.0.1:5000:5000 prebel-rrhh-api
 #   curl -X POST http://localhost:5000/reply -H "Content-Type: application/json" -d "{\"text\":\"cuantas licencias medicas he tomado\"}"
 #   (si pruebas con tildes/ñ por curl en Windows, usa un cliente que mande
 #   UTF-8 de verdad -- p. ej. python -c "...urllib...": curl -d en

@@ -1,0 +1,142 @@
+{
+  "§0": {
+    "huella": "7691162b139d3f67",
+    "citan": []
+  },
+  "R0": {
+    "huella": "19d6e2aeacd9ee1b",
+    "citan": [
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "n8n/INSTRUCCIONES_DEV_N8N.md",
+      "tests/test_documentacion.py"
+    ]
+  },
+  "R1": {
+    "huella": "f3347db4579b70da",
+    "citan": [
+      "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "e2e/tests/tramites.spec.js",
+      "model/empleados_mock.json",
+      "model/retroalimentacion.py",
+      "n8n/INSTRUCCIONES_DEV_N8N.md"
+    ]
+  },
+  "R2": {
+    "huella": "d80bf8117847086f",
+    "citan": [
+      "FLUJOS.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "dist/app.js",
+      "e2e/tests/chat-bubble.spec.js",
+      "e2e/tests/faq.spec.js",
+      "e2e/tests/model-box.spec.js",
+      "n8n/README.md"
+    ]
+  },
+  "R3": {
+    "huella": "dd737bb671b7675b",
+    "citan": [
+      "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "n8n/README.md"
+    ]
+  },
+  "R4": {
+    "huella": "190bbb85f4a5d564",
+    "citan": [
+      "README.md",
+      "model/empleados_mock.json"
+    ]
+  },
+  "R5": {
+    "huella": "14d6fe729838ab58",
+    "citan": [
+      "FLUJOS.md",
+      "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "dist/app.js",
+      "e2e/tests/chat-bubble.spec.js",
+      "model/retroalimentacion.py",
+      "n8n/README.md"
+    ]
+  },
+  "R6": {
+    "huella": "2c89e60ab071e27b",
+    "citan": []
+  },
+  "R7": {
+    "huella": "9d7be6b6a7d0fd1e",
+    "citan": [
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "model/whatsapp_service.py",
+      "n8n/INSTRUCCIONES_DEV_N8N.md",
+      "tests/test_whatsapp_service.py"
+    ]
+  },
+  "R8": {
+    "huella": "65bd196fbe383b73",
+    "citan": [
+      "FLUJOS.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "model/configuracion.py",
+      "model/orquestador.py",
+      "model/rag_retroalimentacion.py",
+      "n8n/INSTRUCCIONES_DEV_N8N.md",
+      "n8n/README.md",
+      "n8n/workflows/03-cerebro-ia.json",
+      "tests/test_orquestador.py"
+    ]
+  },
+  "R9": {
+    "huella": "094eb1eec5c2e231",
+    "citan": [
+      "FLUJOS.md",
+      "model/conectores.py",
+      "model/orquestador.py",
+      "model/rag_retroalimentacion.py",
+      "model/rrhh_bot.py",
+      "tests/test_arquitectura.py"
+    ]
+  },
+  "R10": {
+    "huella": "87dce757b9fd7d74",
+    "citan": [
+      "FLUJOS.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "n8n/INSTRUCCIONES_DEV_N8N.md",
+      "n8n/README.md"
+    ]
+  },
+  "R11": {
+    "huella": "80eae1352b9d7ed5",
+    "citan": [
+      "Dockerfile",
+      "FLUJOS.md",
+      "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "dist/app.js",
+      "model/rrhh_api.py",
+      "n8n/INSTRUCCIONES_DEV_N8N.md",
+      "n8n/README.md",
+      "n8n/workflows/04-puerta-web.json",
+      "tests/test_rrhh_api.py"
+    ]
+  },
+  "R12": {
+    "huella": "4654edc90f2d08b7",
+    "citan": [
+      "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "SETUP_AND_DEPLOY.md",
+      "n8n/INSTRUCCIONES_DEV_N8N.md",
+      "tests/test_documentacion.py"
+    ]
+  },
+  "R13": {
+    "huella": "034d20c3529e42c8",
+    "citan": [
+      "tests/test_documentacion.py"
+    ]
+  }
+}

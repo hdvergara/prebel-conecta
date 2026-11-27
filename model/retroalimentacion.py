@@ -4,7 +4,7 @@ ML no tenía con confianza, esa pregunta/respuesta se guarda aquí como
 candidata -- nunca se escribe sola en faq_rrhh.json. Promoverla al FAQ real
 sigue siendo una decisión manual de quien la revise (ver
 model/entrenar.py --revisar-retroalimentacion), en el mismo espíritu que
-CONSTITUTION.md R1/R4: nada entra al FAQ curado sin que alguien lo decida a
+CONSTITUTION.md R1/R5: nada entra al FAQ curado sin que alguien lo decida a
 propósito.
 
 retroalimentacion.json es estado generado en ejecución, no una fuente de

@@ -35,8 +35,7 @@ def test_reply_with_text_returns_full_json_contract(client):
     """Given a POST with non-empty text.
     When /reply handles it.
     Then the response is 200 JSON with exactly the documented keys,
-    including 'guia', 'tipo' and 'capa' (ver ANALISIS_UNIFICACION.md and
-    REDUCCION_PRIMARIA_DEL_MODELO.md -- el orquestador siempre informa cuál
+    including 'guia', 'tipo' and 'capa' (ver FLUJOS.md -- el orquestador siempre informa cuál
     capa respondió, sin que el llamador tenga que adivinarlo)."""
     resp = client.post("/reply", json={"text": "hola"})
     assert resp.status_code == 200
@@ -142,6 +141,15 @@ def test_reply_response_carries_a_cors_header(client):
     resp = client.post("/reply", json={"text": "hola"},
                         headers={"Origin": "https://hdvergara.github.io"})
     assert "Access-Control-Allow-Origin" in resp.headers
+
+
+def test_cross_origin_access_never_allows_credentials(client):
+    """Given the open origin policy the MVP exception of R11 permits.
+    When /reply responds to a cross-origin request.
+    Then it does not allow credentials: otherwise any page could use a
+    participant's session and void access control."""
+    resp = client.post("/reply", json={"text": "hola"}, headers={"Origin": "https://otro.example"})
+    assert "Access-Control-Allow-Credentials" not in resp.headers
 
 
 def test_reply_response_has_no_cors_header_when_containerized(monkeypatch):

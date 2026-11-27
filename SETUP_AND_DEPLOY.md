@@ -7,7 +7,9 @@ cada uno. Este documento no repite el "cómo" de cada pieza -- eso vive en
 uno con su propio alcance. Este es el punto de entrada para ver el conjunto
 completo antes de ponerse a trabajar. Para **qué camino toma cada
 pregunta** (no el despliegue, sino el flujo en tiempo de ejecución), ver
-[`FLUJOS.md`](FLUJOS.md).
+[`FLUJOS.md`](FLUJOS.md). Es documentación de nivel 2: las reglas están en
+[`CONSTITUTION.md`](CONSTITUTION.md) y sus razones en
+[`DECISIONES.md`](DECISIONES.md).
 
 ## 1. Mapa de componentes
 
@@ -100,4 +102,5 @@ n8n local" de [`n8n/README.md`](n8n/README.md).
 | Probar el canal de WhatsApp local (emulador) | `README.md` → "Canal de WhatsApp" |
 | Cambiar un flujo de n8n (Cerebro o una puerta) | `n8n/README.md`, valida primero con n8n local (§4) |
 | Desplegar el contenedor del Tier 1 en el servidor del equipo | `Dockerfile`, `n8n/README.md` → "Cómo montarlo en otro n8n" |
-| Abrir un PR | este documento §3, `CONSTITUTION.md` → harness (qué debe quedar en verde antes) |
+| Abrir un PR | este documento §3, `CONSTITUTION.md` R12 (qué debe quedar en verde) |
+| Cambiar una regla | `CONSTITUTION.md` §0 (control de transitividad), `DECISIONES.md` |

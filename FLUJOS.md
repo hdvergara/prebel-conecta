@@ -1,10 +1,10 @@
 # Flujos: cómo responde cada canal, hoy
 
-Mapa de referencia de **todos** los caminos que puede tomar la pregunta de
-un colaborador, con el contrato exacto de cada pieza. Es documentación del
-estado actual del código (verificado línea por línea), no un análisis de
-decisiones -- eso vive aparte, en los documentos locales de la ronda de
-unificación (no versionados todavía).
+Mapa de referencia de **todos** los caminos que puede tomar la pregunta de un
+colaborador, con el contrato de cada pieza. Es el **nivel 1** de la
+documentación: describe lo que el código hace hoy y cita las reglas de
+[`CONSTITUTION.md`](CONSTITUTION.md) sin crear otras. Lo que todavía no cumple
+una regla está en la sección 4.
 
 ## 1. Los cinco flujos
 
@@ -44,8 +44,8 @@ flowchart TD
 
 Los umbrales (0.95, 0.75, y 0.85 para el reuso) y el orden de las capas son
 datos editables en `model/arquitectura.json` (cargados por
-`model/configuracion.py`), no constantes de código -- ver CONSTITUTION.md
-R8/R9 para las reglas que esto debe respetar. El paso de reuso
+`model/configuracion.py`), no constantes de código. Reglas que aplican: R8 y
+R9. El paso de reuso
 (`model/rag_retroalimentacion.py`) no es una capa nueva en la cadena
 ratificada (Predictivo/ML/Agentic) -- es una optimización dentro del paso
 de escalada, para no pagarle al LLM dos veces por preguntas parecidas.
@@ -79,6 +79,16 @@ de escalada, para no pagarle al LLM dos veces por preguntas parecidas.
 - Con texto vacío, todos los campos nuevos (`guia`, `tipo`, `capa`) vienen
   `null`, igual que los que ya existían.
 
+### Qué significa `capa`
+
+Fuente común para quien consuma la API (R10):
+
+| `capa` | Origen del texto |
+|---|---|
+| `predictivo`, `ml` | Respuesta ya escrita del FAQ o mensaje fijo del bot |
+| `llm`, `retroalimentacion` | Texto generado por un modelo de lenguaje |
+| ausente, `null` u otro valor | Sin origen identificado |
+
 ### El conector LLM (capa "llm")
 
 `model/conectores.py` -- intercambiable, vía la variable de entorno
@@ -91,9 +101,9 @@ de escalada, para no pagarle al LLM dos veces por preguntas parecidas.
 
 Son variables de entorno reales del proceso que corre `rrhh_api.py` (no se
 leen de `.env` -- a diferencia de `whatsapp_service.py`, `rrhh_api.py` no
-carga `python-dotenv`). Sin ninguna configurada, el comportamiento es
-exactamente el de antes de esta cadena: una consulta rápida, sin red
-externa, nunca escala.
+carga `python-dotenv`). Sin ninguna configurada no se llama a ningún modelo
+externo. El reuso de la cola (abajo) sigue activo: si quedaron datos de un
+conector anterior, la API puede devolver texto generado.
 
 Hoy no existe un servidor MCP real montado para este proyecto (ni
 envolviendo a Ollama ni al RAG de n8n) -- es trabajo de infraestructura
@@ -112,26 +122,25 @@ se recalculan los embeddings en cada búsqueda, sin caché, a propósito.
 ### Despliegue del monolito
 
 `docker-compose.yml` (raíz del repo) empaqueta esta cadena completa como
-un solo servicio desplegable (decisión #3 de la ronda de reducción
-primaria del modelo) -- `docker compose up --build` la levanta localmente
+un solo servicio desplegable ([`DECISIONES.md`](DECISIONES.md), D3) -- `docker compose up --build` la levanta localmente
 en `http://localhost:5000`. Un volumen nombrado persiste
 `retroalimentacion.json` entre reinicios del contenedor (sin él, el reuso
 de arriba se reiniciaría vacío cada vez); n8n y Ollama quedan deliberadamente
 fuera de este archivo, como infraestructura aparte.
 
-## 3. La cadena de n8n (flujos 4 y 5): independiente, sin cambios
+## 3. La cadena de n8n (flujos 4 y 5)
 
 El Cerebro de n8n (`n8n/workflows/03-cerebro-ia.json`) tiene su **propia**
-cadena de tres niveles, que no pasa por `model/orquestador.py` y no se
-tocó en esta ronda:
+cadena de tres niveles. No es independiente de la de Python: su nivel ML llama
+a la API, y la API pasa por `model/orquestador.py`.
 
 1. **Predictivo** -- su propio detector de saludo/menú (nodo *Detectar
    saludo*), independiente del de `rrhh_bot.py`.
 2. **ML** -- llama a `POST /reply` igual que el flujo 2, pero solo lee
    `confianza` y `reply` de la respuesta; si `confianza ≥ 0.65` la usa
-   directo. Como el conector LLM de Python está apagado por defecto
-   (`LLM_CONECTOR` sin definir), esta llamada se comporta igual que antes
-   de esta ronda -- rápida, sin escalar nunca del lado de Python.
+   directo, sin mirar `capa`. Sin conector configurado y con la cola vacía,
+   lo que recibe es siempre una respuesta del FAQ. En otro caso, ver la
+   brecha B1.
 3. **Agentic** -- su propio RAG con Ollama (`embeddinggemma` +
    `gemma4:e2b`) sobre los documentos reales de Prebel.
 
@@ -145,36 +154,59 @@ flowchart TD
     N4 -->|no, o la llamada falla| N6["RAG propio con Ollama<br>sobre los documentos reales"]
 ```
 
-Ver `n8n/README.md` para el detalle completo de esta cadena (que sigue
-siendo la fuente de verdad de cómo responde WhatsApp real).
+Cómo operar esta cadena: [`n8n/README.md`](n8n/README.md).
 
-**Puente opcional entre las dos cadenas:** este mismo Cerebro puede además
-servir como *backend* del conector LLM de Python (`LLM_CONECTOR=mcp`
-apuntando a un servidor MCP que envuelva este Cerebro) -- en ese caso, el
-flujo 2 (portal) podría terminar escalando hasta el RAG real de n8n. Es
-opcional y no existe montado hoy; mientras no se configure, las dos
-cadenas son completamente independientes.
+**Rol de n8n (R10):** hoy el Cerebro es un **canal** que llama a la API. Podría
+servir como *backend* del conector (`LLM_CONECTOR=mcp`) solo con una entrada
+propia que no llame a la API; esa entrada no existe.
 
-## 4. Lo que no está unificado todavía (a propósito)
+## 4. Brechas conocidas y límites
 
+El seguimiento de estas brechas y del resto de pendientes está en
+[`REQUERIMIENTOS_ABIERTOS.md`](REQUERIMIENTOS_ABIERTOS.md).
+
+### Brechas: el código todavía no cumple una regla
+
+| ID | Regla | Qué pasa hoy | Cuándo ocurre |
+|---|---|---|---|
+| B1 | R10 | El Cerebro acepta cualquier respuesta con `confianza ≥ 0.65` y la envía sin aviso de IA, aunque `capa` sea `llm` o `retroalimentacion` | La API tiene conector configurado o cola con datos, y la confianza queda entre 0.65 y 0.75 |
+| B2 | R11 | Nada en el código impide abrir la API a llamadas no controladas | Depende de quien despliega |
+| B3 | R10 | Nada en el código impide apuntar el conector a un Cerebro que llame a la API | Solo si alguien monta ese servidor MCP |
+| B4 | R11 | La puerta Web es `public: true` y no tiene control de acceso; *Allowed Origins* y `?chat=demo` no lo son | Si el workflow está activo en una dirección alcanzable |
+| B5 | R11 | Las puertas Evolution y Emulador verifican a la plataforma (secreto o firma), no a quien escribe, y no filtran remitentes | Si la puerta está conectada a un número al que cualquiera puede escribir |
+| B6 | R11 | `whatsapp_service.py` escucha en `0.0.0.0`, y el secreto de firma por defecto es público en `.env.example` | En una red compartida, o con un túnel, si no se cambia el secreto |
+| B8 | R10 | El portal ignora `capa` y muestra toda respuesta bajo "Respuesta del modelo (IA)": un texto generado no se distingue de una respuesta del FAQ | La API devuelve `capa` `llm` o `retroalimentacion` a tiempo, algo posible sobre todo con la cola, que no llama a un modelo |
+
+Todas se deducen del código y de los workflows exportados; no se han ejecutado.
+No se ha comprobado qué está activo en el servidor del equipo.
+
+### Límites aceptados o pendientes
+
+- **CORS abierto en la API local** (excepción MVP de R11). En `127.0.0.1` acepta
+  cualquier origen, sin credenciales: otra página abierta en el navegador del
+  operador puede llamarla. Un navegador puede bloquearlo por su cuenta; no se ha
+  probado.
+- **En el contenedor no hay CORS** (`RRHH_API_HOST` distinto de `127.0.0.1`). Un
+  navegador en otro origen no puede leer sus respuestas; las llamadas de
+  servidor, como la de n8n, no se ven afectadas. La excepción permite abrirlo,
+  pero el código no lo hace.
+- **El portal espera 1,5 s** (R2). Si la API tarda más, por ejemplo al escalar
+  al conector, el recuadro muestra el texto de respaldo y pierde también la
+  respuesta ML que la API ya había calculado.
+- **El FAQ tapa temas del RAG de n8n.** Con el modelo real en local, preguntas
+  de vacaciones, certificado laboral y crédito de vivienda superan 0.65, así que
+  no llegan al RAG. Que esos temas estén en los documentos reales lo reporta el
+  equipo; no se ha verificado aquí.
+- **13 de las 15 entradas del FAQ tienen marcadores** entre corchetes. R5
+  permite reemplazarlos por ejemplos ficticios marcados; no se ha hecho.
 - **Flujo 3 (WhatsApp local) no pasa por el orquestador.**
-  `model/whatsapp_service.py` llama a `bot.match(texto)` directo, no a
-  `orquestador.responder_pregunta(...)` -- sigue siendo solo capa ML, sin
-  el escalado 95/75/85, el reuso por retroalimentación, ni el conector LLM.
-  No es un descuido de esta ronda:
-  es el estado heredado, documentado aquí para que sea visible y se pueda
-  decidir a propósito si conviene cambiarlo.
-- **`dist/app.js`'s `rank()` sigue siendo JS puro, sin red** (R2,
-  `CONSTITUTION.md`) -- nunca puede compartir código con el orquestador ni
-  con `RRHHBot`, por diseño.
-- **Tres detectores de saludo siguen existiendo por separado:**
-  `dist/app.js`'s `rank()` (implícito, por palabras clave), `RRHHBot`'s
-  `_es_saludo()` (dentro de la capa ML, no del Predictivo de Python -- a
-  diferencia de n8n, el "Predictivo" de Python no es un detector de
-  saludo, es solo "confiar en una respuesta del ML muy segura"), y el
-  nodo propio de n8n (su Predictivo, §3 arriba). Ninguno comparte código
-  con los otros dos, por diseño en el caso de `rank()` (R2) y por decisión
-  explícita en los otros dos (ver `CONSTITUTION.md` R9).
+  `model/whatsapp_service.py` llama a `bot.match(texto)` directo: no tiene
+  escalado, reuso ni conector.
+- **`rank()` de `dist/app.js` es JS puro, sin red** (R2): no comparte código con
+  el orquestador ni con `RRHHBot`.
+- **Hay tres detectores de saludo separados:** `rank()` (implícito, por palabras
+  clave), `_es_saludo()` de `RRHHBot` (dentro de la capa ML; el "Predictivo" de
+  Python no detecta saludos) y el nodo propio de n8n.
 
 ## 5. Dónde vive cada pieza
 

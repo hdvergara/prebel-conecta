@@ -5,8 +5,9 @@ y un buscador por palabras clave. Si además está corriendo la API local (`mode
 el mismo buscador compara la pregunta con el FAQ usando dos modelos preentrenados
 (similitud semántica y sentimiento) y muestra la comparación en la página.
 
-No es un modelo que redacta respuestas. Elige la entrada del FAQ más parecida, o
-pide escribir a RRHH cuando la similitud no alcanza.
+Sin conector LLM configurado, que es lo predeterminado, no redacta respuestas:
+elige la entrada del FAQ más parecida o pide escribir a RRHH cuando la similitud
+no alcanza.
 
 Esta demo tiene varios componentes (portal, capa semántica, dos canales de
 WhatsApp). Para el mapa completo, los requisitos mínimos en conjunto y la
@@ -14,6 +15,14 @@ provisión de cuentas/accesos, ver [`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md).
 Para el detalle de **qué camino toma cada pregunta** según por dónde entra
 (portal, WhatsApp local, WhatsApp/chat por n8n), ver [`FLUJOS.md`](FLUJOS.md).
 Lo de abajo es el detalle de instalar y correr el portal localmente.
+
+## Requerimientos abiertos
+
+Lo que no está confirmado, decidido, implementado o verificado está en
+[`REQUERIMIENTOS_ABIERTOS.md`](REQUERIMIENTOS_ABIERTOS.md). **Cada punto se
+trata como un requerimiento abierto** y no debe darse por resuelto. Antes de
+desplegar o de mostrar la demo, revisa ahí lo relativo al acceso (las puertas de
+n8n hoy no cumplen R11) y lo que falta verificar en el servidor.
 
 ## Qué hace el portal
 
@@ -52,7 +61,8 @@ Desde **Mi espacio** se puede:
 - Abrir **Preguntas frecuentes**. El listado mezcla las respuestas del portal con
   las de `model/faq_rrhh.json` (15 temas: vacaciones, certificado, incapacidad,
   nómina, datos personales, vacantes internas, EPS, créditos, prima y cesantías).
-  Los textos con `[X]`, `[sistema]` o `[portal]` son marcadores a propósito.
+  Los textos con `[X]`, `[sistema]` o `[portal]` son marcadores a propósito
+  (R5).
 
 Los trámites se abren en un cuadro de diálogo. La respuesta del modelo no: queda
 en la sección **Resultado del modelo**, debajo del buscador. Si la coincidencia
@@ -80,7 +90,17 @@ pregunta. Si no hay ninguna, el texto dice que no hubo coincidencia.
 
 Si la API no responde en 1,5 segundos, el cuadro igual aparece: la respuesta es
 el mensaje de respaldo y confianza y sentimiento dicen "No disponible (API local
-no activa)".
+no activa)". Es lo esperado en un visitante sin la API en su equipo, y también
+en una copia del portal publicada en un servidor, porque `127.0.0.1` siempre
+apunta a la máquina de quien mira.
+
+`window.PREBEL_MODEL_API`, definida en un `<script>` antes de `app.js` en la
+copia desplegada, cambia la dirección sin tocar el código (R3), por ejemplo a
+`/api/reply` en el mismo dominio. **Eso convierte la API en una superficie de
+respuesta: R11 solo lo permite en condiciones controladas**, es decir, en una
+red privada con participantes conocidos o detrás de control de acceso en el
+servidor, tanto para la página como para esa ruta. No importa qué datos tenga el
+FAQ. En una copia pública sin ese control, el recuadro se queda sin backend.
 
 `/reply` ya devuelve algunos campos más (`guia`, `tipo`, `capa` -- ver
 siguiente sección y [`FLUJOS.md`](FLUJOS.md)) que este cuadro todavía no
@@ -104,22 +124,9 @@ varias formas de preguntarlo, una respuesta, y a veces una ruta y un área.
    clasifica el mensaje de 1 a 5 estrellas: 1–2 negativo, 3 neutral, 4–5 positivo.
    No cambia la respuesta; solo se muestra en el cuadro.
 
-Por encima de `RRHHBot`, `model/orquestador.py` decide si esa respuesta
-semántica ya basta o si hace falta escalar: con más de 95% de similitud se
-confía en ella directo; entre 75% y 95% se usa tal cual; por debajo de 75%
-(o si quien llama pide seguir buscando), antes de escalar de verdad revisa
-si una pregunta parecida ya la resolvió el conector LLM antes
-(`model/rag_retroalimentacion.py`, umbral 85%) y la reusa sin volver a
-llamarlo; si no hay nada parecido, sí escala a un conector LLM
-intercambiable (hoy, vía MCP -- apagado por defecto, así que esto no
-cambia nada si no se configura). El detalle completo de esa cadena, con
-diagrama, está en [`FLUJOS.md`](FLUJOS.md) y en `CONSTITUTION.md` (R8/R9).
-
-`POST /reply` recibe `{"text": "...", "seguir": false}` (`seguir` es
-opcional) y responde con `reply`, `ruta`, `area`, `confianza`,
-`sentimiento`, `guia`, `tipo` y `capa` -- los últimos tres son aditivos,
-`dist/app.js` todavía no los usa (ver `FLUJOS.md` para el contrato
-completo). Un texto vacío también devuelve el respaldo.
+Ese corte de 0,65 es de la capa ML. Por encima, `model/orquestador.py` decide
+si la respuesta basta o si se escala. Esa cadena, sus umbrales y el contrato
+completo de `POST /reply` están en [`FLUJOS.md`](FLUJOS.md).
 
 La primera vez, los dos modelos se descargan de Hugging Face (~1 GB) y quedan en
 caché. Las pruebas automáticas no los cargan: usan sustitutos.
@@ -185,24 +192,10 @@ portal) que corre en el servidor del equipo: un "cerebro" compartido y tres
 "puertas" (emulador de WhatsApp Cloud API, Evolution API para WhatsApp real,
 y el portal vía una burbuja de chat).
 
-El cerebro ya no es un sistema aparte: antes de redactar una respuesta con
-IA a partir de los documentos oficiales de Prebel (RAG con Ollama, el
-"Nivel 2, Agentic"), le pregunta primero a `model/rrhh_api.py` (el mismo
-modelo que usa el portal) si tiene una respuesta segura del FAQ ficticio
-(el "Nivel 1, ML", < 1 s) — y solo si no la tiene, sigue con el RAG. Junto
-con su propio detector de saludo/menú ("Nivel 0, Predictivo"), los tres
-niveles forman la cadena **propia de n8n**: barato y rápido primero, la IA
-que redacta (más lenta, ~20 s) solo cuando hace falta.
-
-Esta cadena es independiente de la que ahora orquesta
-`model/orquestador.py` del lado de Python (ver "Cómo funciona el modelo"
-arriba): n8n solo lee `confianza` y `reply` de `/reply`, así que para n8n
-el comportamiento es el mismo de siempre. Las dos cadenas pueden, más
-adelante, conectarse (este mismo cerebro puede servir como backend del
-conector LLM de Python, vía MCP) pero hoy corren por separado. El mapa
-completo de los dos caminos, lado a lado, está en
-[`FLUJOS.md`](FLUJOS.md); el detalle de la cadena propia de n8n sigue en
-"El encadenamiento de 3 niveles" de `CONSTITUTION.md` y en `n8n/README.md`.
+El cerebro pregunta primero a la API (la misma que usa el portal) y solo redacta
+con IA, a partir de los documentos reales, si no obtiene una respuesta segura.
+Los dos caminos y sus brechas conocidas están en [`FLUJOS.md`](FLUJOS.md); el
+detalle operativo de n8n, en [`n8n/README.md`](n8n/README.md).
 
 Para que el cerebro (en el servidor del equipo) pueda llamar a
 `model/rrhh_api.py`, este se empaqueta con el `Dockerfile` de esta carpeta y
@@ -226,22 +219,10 @@ de [`n8n/README.md`](n8n/README.md) para el procedimiento.
 ## Estructura
 
 - `dist/` — sitio estático (HTML, CSS y JS). No tiene paso de compilación.
-- `model/` — `rrhh_bot.py` (capa ML/semántica), `orquestador.py` (decide
-  predictivo/ML/LLM por encima de `rrhh_bot.py`, ver [`FLUJOS.md`](FLUJOS.md)),
-  `conectores.py` (conector LLM intercambiable, vía MCP),
-  `configuracion.py` + `arquitectura.json` (umbrales editables de la
-  cadena), `retroalimentacion.py` (cola de preguntas que el LLM resolvió y
-  las capas anteriores no tenían, para revisión manual),
-  `rag_retroalimentacion.py` (reusa esas respuestas por similitud antes de
-  volver a llamar al LLM, ver [`FLUJOS.md`](FLUJOS.md)), `rrhh_api.py`
-  (Flask en `127.0.0.1:5000`, consumidor desde el navegador),
-  `whatsapp_service.py` (Flask en `WA_SERVICE_PORT`, consumidor desde un
-  entorno compatible con la WhatsApp Cloud API — ver sección **Canal de
-  WhatsApp** más abajo), `faq_rrhh.json` (contenido del FAQ),
-  `empleados_mock.json` (los 4 perfiles ficticios, única fuente de los
-  datos de persona — `catalogo.py` solo los lee y exporta) y `entrenar.py`
-  (cachea embeddings y recalibra el umbral de similitud — ver
-  [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
+- `model/` — la API, el modelo semántico, el orquestador y el canal de WhatsApp
+  local (qué hace cada archivo: [`FLUJOS.md`](FLUJOS.md) §5), más
+  `faq_rrhh.json` (contenido del FAQ), `empleados_mock.json` (los 4 perfiles
+  ficticios) y `entrenar.py` (ver [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
 - `n8n/` — canal de WhatsApp y burbuja de chat del portal en n8n (flujos
   exportados + scripts de la base de conocimiento). Ver
   [`n8n/README.md`](n8n/README.md).
@@ -350,8 +331,22 @@ Esto regenera `dist/catalogo.js` y `dist/faq.js`.
 
 ## Tests
 
-Las reglas completas (qué cubre cada suite, por qué, y qué significa "verde")
-están en [`CONSTITUTION.md`](CONSTITUTION.md) — esto es solo el cómo correrlas.
+"Verde" significa las tres suites (R12 de [`CONSTITUTION.md`](CONSTITUTION.md)).
+Aquí está cómo correrlas y las convenciones:
+
+- Python: `RRHHBot` y el modelo de sentimiento se sustituyen por los dobles de
+  `tests/fakes.py`.
+- Los módulos con estado en archivo (`configuracion.py`, `retroalimentacion.py`)
+  exponen su ruta en `RUTA`; cada prueba la redirige a `tmp_path`. Toda prueba
+  que pueda escalar debe redirigir la de `retroalimentacion`.
+- El transporte MCP se sustituye en `tests/test_conectores.py`; un servidor MCP
+  real es una comprobación manual.
+- Cuatro comprobaciones de documentación necesitan git. En una copia sin `.git`
+  o sin git instalado se saltan y lo dicen (`pytest -rs` muestra el motivo). Un
+  salto no cuenta como verde (R12).
+- JS: solo funciones puras de `dist/app.js`, cargadas en un contexto `vm`.
+- E2E: cada llamada a la API se intercepta con `page.route()`. Cada prueba
+  documenta Context / Given / When / Then (ver `e2e/tests/search.spec.js`).
 
 **Unit tests de Python** (rápidos, sin red, sin modelos reales):
 

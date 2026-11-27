@@ -137,7 +137,7 @@ function show(title,body) {
   if(!modal.open) modal.showModal();
 }
 function action(route,label){return '<button class="primary" data-route="'+route+'">'+label+'</button>';}
-const MODEL_API = 'http://127.0.0.1:5000/reply';
+const MODEL_API = window.PREBEL_MODEL_API || 'http://127.0.0.1:5000/reply';
 function escapeHtml(text) { return text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function modelReply(text) {
   const controller = new AbortController();
@@ -368,9 +368,10 @@ try {
 
 // Puerta Web (Tier 2 del encadenamiento Predictivo -> ML -> Agentic, ver
 // CONSTITUTION.md): burbuja de chat de n8n (@n8n/chat) contra la misma
-// Cerebro que ya usa WhatsApp (ver n8n/README.md). Nunca para cualquier
-// visitante de GitHub Pages -- el servidor atiende una sola pregunta con
-// IA a la vez -- así que solo se activa con ?chat=demo en la URL, y
+// Cerebro que ya usa WhatsApp (ver n8n/README.md). Solo en condiciones
+// controladas (CONSTITUTION.md R11). ?chat=demo evita cargarla por
+// accidente, pero no es control de acceso. Se activa solo con ese
+// parámetro, y
 // mientras CHAT_WEBHOOK_URL no se configure (sigue con su placeholder
 // entre corchetes, ver R5 en CONSTITUTION.md) no hace nada. R2: carga
 // aparte, después de todo lo demás, y si falla el portal sigue igual.

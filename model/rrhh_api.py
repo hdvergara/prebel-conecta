@@ -5,22 +5,11 @@ Si esta API no está corriendo, app.js sigue funcionando con su propio
 buscador en JavaScript sobre faq.js; esta API solo añade respuestas por
 similitud semántica cuando está disponible.
 
-Desde la "reducción primaria del modelo" (ver REDUCCION_PRIMARIA_DEL_MODELO.md
-y CONSTITUTION.md R8/R9), /reply ya no solo expone el match del ML: pasa por
-model/orquestador.py, que decide con los umbrales de model/arquitectura.json
-si responder con eso o escalar al conector LLM (model/conectores.py). Sin
-LLM_CONECTOR configurado (el default), nunca escala -- se comporta
-exactamente como antes, una consulta rápida sin red externa.
+/reply pasa por model/orquestador.py. La cadena, el contrato y las brechas
+conocidas (incluido lo que recibe el Cerebro de n8n, que también llama aquí)
+están en FLUJOS.md. Publicar esta API solo es posible en las condiciones de
+CONSTITUTION.md R11.
 
-El Cerebro de n8n (ver n8n/README.md) sigue llamando a este mismo endpoint
-como su propio Tier 1, sin cambios en este branch. Si en esta misma
-instancia se configura LLM_CONECTOR, esa llamada de n8n hereda la latencia
-de la escalada -- si se quiere mantener el Tier 1 de n8n instantáneo,
-conviene correr esa instancia sin LLM_CONECTOR y reservar la escalada para
-la que atiende al portal/otros llamadores directos.
-
-Para eso corre contenerizada en el servidor del equipo (ver Dockerfile),
-nunca expuesta públicamente: solo n8n, en la misma red privada, le habla.
 RRHH_API_HOST controla a qué dirección se enlaza; por defecto sigue siendo
 127.0.0.1 (uso local, sin cambios) y el contenedor lo cambia a 0.0.0.0.
 
