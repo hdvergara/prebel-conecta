@@ -56,7 +56,8 @@
       "dist/app.js",
       "e2e/tests/chat-bubble.spec.js",
       "model/retroalimentacion.py",
-      "n8n/README.md"
+      "n8n/README.md",
+      "n8n/workflows/03-cerebro-ia.json"
     ]
   },
   "R6": {
