@@ -23,7 +23,7 @@ from retroalimentacion import listar_pendientes
 def buscar_similar(modelo, texto: str) -> dict | None:
     """None si la cola está vacía, si nada alcanza UMBRAL_RETROALIMENTACION,
     o si el cálculo falla por cualquier motivo -- nunca lanza, misma caída
-    controlada que el resto de la cadena (R2/R8): sin una coincidencia
+    controlada que el resto de la cadena (R8): sin una coincidencia
     clara, el orquestador debe seguir su camino normal (escalar al
     conector), no fallar."""
     pendientes = listar_pendientes()

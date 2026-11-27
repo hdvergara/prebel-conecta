@@ -9,6 +9,9 @@ cuando la pregunta no está en ellos.
 > No se suben nunca: ni los `.md` originales, ni `data/kb.json` (las fichas que
 > salen de ellos), ni `*.real.json` (el cerebro con nombres reales).
 
+> **Tarea pendiente (P1):** quien maneja n8n tiene los pasos en
+> [`INSTRUCCIONES_DEV_N8N.md`](INSTRUCCIONES_DEV_N8N.md).
+
 ## La idea: un cerebro y tres puertas
 
 ```mermaid
@@ -34,19 +37,13 @@ flowchart LR
 
 ### Cómo responde el cerebro: 3 niveles, barato primero
 
-Mismo principio que el resto del repositorio (ver CONSTITUTION.md): capas
-baratas/rápidas primero, solo se escala a la siguiente si la anterior no
-tiene una respuesta segura.
+Capas baratas y rápidas primero; solo se escala si la anterior no tiene una
+respuesta segura (R8 de [`CONSTITUTION.md`](../CONSTITUTION.md)).
 
-> **Nota (reducción primaria del modelo):** lo de abajo describe la cadena
-> **propia de n8n**, que sus tres puertas siguen usando tal cual, sin
-> cambios. Por separado, `model/orquestador.py` orquesta otra cadena
-> equivalente del lado de Python, para el portal y cualquier otro llamador
-> directo de `/reply` -- con sus propios umbrales (`model/arquitectura.json`)
-> y su propio conector LLM intercambiable (`model/conectores.py`). Este
-> mismo Cerebro puede servir como el backend de ese conector (vía MCP)
-> cuando el equipo lo configure así -- ver CONSTITUTION.md R9 -- pero eso es
-> opcional y no cambia nada de lo que sigue en esta sección.
+El Cerebro es hoy un **canal** que llama a la API (R10). No lo uses a la vez como
+backend del conector LLM sin una entrada propia que no llame a la API. Antes de
+configurar un conector en la API que consulta el Cerebro, revisa las brechas
+conocidas en [`FLUJOS.md`](../FLUJOS.md).
 
 1. **Nivel 0, Predictivo -- saludo o menú** ("hola", "menú", "ayuda"…) →
    responde el menú al instante, sin IA. La lista de saludos vive **solo** en
@@ -223,24 +220,29 @@ carga mientras espera, sin pasos adicionales en el flujo.
   con la URL real del Chat Trigger importado, la burbuja no hace nada, ni
   siquiera con el parámetro en la URL.
 
-Cómo cumple `CONSTITUTION.md`:
+Relación con `CONSTITUTION.md`:
 
 - **R2 (static-first):** la burbuja se carga aparte (import dinámico, al
   final de `app.js`) y nunca bloquea nada; si n8n no responde o el script
   falla, el portal sigue funcionando igual.
-- **R3 (sin secretos en el cliente):** la URL del chat es pública por
-  diseño -- se limita a los orígenes permitidos (opción *Allowed Origins*
-  del Chat Trigger, ajústala tras importar) y no lleva claves.
-- **Capacidad:** el servidor responde una pregunta con IA a la vez -- por
-  eso el candado del parámetro `?chat=demo`, para no exponerla a todo
-  visitante de GitHub Pages.
+- **R3 (sin secretos en el cliente):** la URL del chat no lleva claves.
+- **R5 (marcadores):** mientras `CHAT_WEBHOOK_URL` siga entre corchetes, la
+  burbuja queda apagada.
+- **R11 (exposición): hoy no se cumple en un servidor alcanzable.** La puerta
+  Web es pública. *Allowed Origins* y el parámetro `?chat=demo` no son control
+  de acceso. Actívala solo en condiciones controladas.
+- **Capacidad:** el servidor responde una pregunta con IA a la vez.
 
-**Para activarla de verdad:** importa `04-puerta-web.json`, configura
-*Allowed Origins*, copia la URL pública del *Chat Trigger* y reemplaza el
-placeholder de `CHAT_WEBHOOK_URL` en `dist/app.js` con esa URL real. El
-nombre exacto del paquete `@n8n/chat` (CDN, versión del bundle) no se pudo
-verificar contra un Chat Trigger real desde este repositorio -- revísalo
-contra la documentación de `@n8n/chat` al activarla.
+**Para activarla:** primero cumple R11 (red privada con participantes
+conocidos, o control de acceso en el servidor delante del *Chat Trigger*).
+Después importa `04-puerta-web.json`, configura *Allowed Origins*, copia la URL
+del *Chat Trigger* y reemplaza el marcador de `CHAT_WEBHOOK_URL` en
+`dist/app.js`, solo en la copia desplegada. El nombre exacto del paquete
+`@n8n/chat` (CDN, versión del bundle) no se pudo verificar contra un Chat
+Trigger real desde este repositorio.
+
+Las dos puertas de WhatsApp tienen la misma restricción (R11): verifican a la
+plataforma, no a quien escribe. Ver las brechas en [`FLUJOS.md`](../FLUJOS.md).
 
 ## Probar los flujos en un n8n local (sin el servidor del equipo)
 

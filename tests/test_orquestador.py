@@ -107,7 +107,7 @@ def test_connector_unavailable_falls_back_gracefully_to_the_ml_answer():
     """Given confianza = 0.40, pero el conector no responde (None).
     When responder_pregunta() se llama.
     Then no se deja al usuario sin nada -- se usa lo que el ML ya tenía,
-    capa='ml', igual que el principio de caída controlada de R2/R8."""
+    capa='ml', igual que el principio de caída controlada de R8."""
     orq = Orquestador(BotFalso(confianza=0.40), ConectorQueNuncaResponde())
     resultado = orq.responder_pregunta("pregunta sin respuesta del llm")
     assert resultado["capa"] == "ml"

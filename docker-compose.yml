@@ -1,5 +1,5 @@
 # Monolito desplegable del backend (decisión #3 de
-# REDUCCION_PRIMARIA_DEL_MODELO.md): un solo servicio que empaqueta
+# DECISIONES.md D3): un solo servicio que empaqueta
 # model/rrhh_api.py + model/orquestador.py + el conector LLM. n8n y Ollama
 # quedan deliberadamente fuera de este archivo -- si se usan, siguen siendo
 # infraestructura aparte (ver n8n/README.md), a la que el conector puede

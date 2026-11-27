@@ -1,4 +1,4 @@
-"""Spec-Doc editable de la cadena de capas (ver CONSTITUTION.md R9).
+"""Spec-Doc editable de la cadena de capas (nivel "Data" de CONSTITUTION.md).
 
 Los umbrales que decide model/orquestador.py viven aquí como dato, no como
 constantes de código, para que cambiarlos no implique tocar orquestador.py
@@ -55,7 +55,7 @@ def _cargar() -> dict:
     """Si el archivo falta, está corrupto, o tiene valores con el tipo o el
     rango equivocado, se usan los valores por defecto -- este Spec-Doc es
     una comodidad editable, nunca una dependencia dura (mismo espíritu que
-    R2/R8)."""
+    R8)."""
     try:
         bruto = {**_POR_DEFECTO, **json.loads(RUTA.read_text(encoding="utf-8"))}
     except (OSError, json.JSONDecodeError):

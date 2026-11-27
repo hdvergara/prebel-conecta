@@ -97,7 +97,7 @@
     {
       "id": "b13",
       "name": "Preguntar al modelo FAQ",
-      "notes": "Tier 1 (ML) del encadenamiento Predictivo -> ML -> Agentic (ver CONSTITUTION.md y el README raíz del repo): intenta primero con el modelo semántico de model/rrhh_api.py -- elige una respuesta ya escrita del FAQ ficticio, en menos de 1 s -- antes de gastar el RAG+LLM de abajo (Tier 2, ~20 s, documentos reales). Corre contenerizado en este mismo servidor (ver Dockerfile en la raíz del repo), en la red privada de Docker -- nunca expuesto al público, solo n8n le habla. onError=continueErrorOutput: si no responde (apagado, lento, red), se sigue de largo al RAG sin bloquear nada -- mismo principio de resiliencia que R2 en CONSTITUTION.md, ahora entre sistemas.",
+      "notes": "Tier 1 (ML) del encadenamiento Predictivo -> ML -> Agentic (ver CONSTITUTION.md y el README raíz del repo): intenta primero con el modelo semántico de model/rrhh_api.py -- elige una respuesta ya escrita del FAQ ficticio, en menos de 1 s -- antes de gastar el RAG+LLM de abajo (Tier 2, ~20 s, documentos reales). Corre contenerizado en este mismo servidor (ver Dockerfile en la raíz del repo), en la red privada de Docker -- nunca expuesto al público, solo n8n le habla. onError=continueErrorOutput: si no responde (apagado, lento, red), se sigue de largo al RAG sin bloquear nada -- caída controlada de R8 en CONSTITUTION.md.",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "onError": "continueErrorOutput",

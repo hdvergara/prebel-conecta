@@ -1,233 +1,276 @@
 # Prebel Conecta — Constitution
 
-This document is the contract for anyone (human or agent) changing this project.
-It has three parts: the **spec** (what this project is and must keep being true),
-the **railguards** (hard rules that must never be violated), and the **harness**
-(how work is verified before it's considered done).
+The contract for anyone (human or agent) changing this project. It is
+**level 0** of the documentation: it holds rules only.
 
-Anything in `specs/plan.md` or a PR description that conflicts with this file is
-wrong and must be fixed to match this file, not the other way around.
+## 0. How to read and change this document
+
+### Documentation levels
+
+Each level may rely on the levels above it. It must never contradict them or
+create rules of its own.
+
+| Level | Where | Holds |
+|---|---|---|
+| 0 — Rules | this file | Rules with an ID |
+| 1 — Behaviour | [`FLUJOS.md`](FLUJOS.md) | What the code does today, including known gaps against these rules |
+| 2 — Operation | [`README.md`](README.md), [`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md), [`n8n/README.md`](n8n/README.md), `MODEL_*.md` | How to install, run and test |
+| Data | `model/arquitectura.json` | The only source of the orchestrator's thresholds |
+| Record | [`DECISIONES.md`](DECISIONES.md) | Why a rule is what it is, with its status |
+| Open requirements | [`REQUERIMIENTOS_ABIERTOS.md`](REQUERIMIENTOS_ABIERTOS.md) | What is unconfirmed, undecided, unimplemented or unverified. It creates no rule and permits nothing |
+
+A file that is not versioned is never a source: nothing in the repository may
+cite it. A PR description or a local plan that conflicts with this file is the
+one that is wrong.
+
+### Data-agnostic presumption
+
+What sits behind a backend cannot be known from this repository: a deployment
+may change its FAQ, documents, connector or queue. So no rule or control about
+**who may reach a surface** may depend on what the data is. When deciding that,
+treat the data behind any backend as sensitive: "it is only demo data" opens
+nothing. The presumption decides who reaches a surface, not what a surface may
+do in controlled conditions; there R7 applies to the data it actually serves.
+
+This is about running surfaces. Versioned content can be reviewed before it is
+committed, and R1, R4 and R5 govern it.
+
+### Precedence
+
+Precedence never settles a contradiction between rules: R0 forbids it, and the
+text must be fixed. It only says what to protect in the meantime, if a
+situation nobody foresaw makes two rules impossible to meet. This is the
+normative hierarchy of R0: the lower class number weighs more.
+
+1. **Data protection:** R1, R3, R4, R5, R6, R7, R11.
+2. **Availability:** R2, R8.
+3. **Demo behaviour and engineering:** R9, R10, R12, R13.
+
+An exception exists only if the rule itself states it.
+
+### Changing a rule
+
+Every change to this document follows R0.
+
+### Terms
+
+- **MVP phase:** the current phase. It lasts until
+  [`DECISIONES.md`](DECISIONES.md) records that the environments are defined.
+- **API:** the `/reply` endpoint of `model/rrhh_api.py`.
+- **Answer surface:** anything that receives a question and answers it from a
+  backend: the API, the WhatsApp bridge, every n8n entry point, and any proxy
+  or chat widget leading to one.
+- **Controlled conditions:** a surface is reachable only from the operator's
+  machine or a private network with known participants, **or** behind access
+  control.
+- **Access control:** a check made on the server that verifies who is asking and
+  authorizes them before the question is processed.
+- **Connector:** the interface through which the API reaches a language model.
+- **Queue:** the stored question/answer pairs produced through the connector.
+- **Generated text:** any answer written by a language model, including one
+  reused from the queue.
 
 ## 1. Spec
 
-Prebel Conecta is a **demo HR portal** with four independent layers:
+Prebel Conecta is a **demo HR portal**: a static site, a local semantic API, a
+local WhatsApp bridge, and a separate n8n system run on the team's server. How
+each one behaves is described in level 1.
 
-1. **Static layer** (`dist/`) — a zero-build HTML/CSS/JS site. It is published to
-   GitHub Pages and MUST be fully usable with no backend running: profile switch,
-   vacation request flow, payroll/certificate mock flows, keyword-based search
-   (`suggestions()`), and the static FAQ list (from `dist/faq.js`) all work from
-   static data alone (`dist/catalogo.js`, `dist/faq.js`).
-2. **Semantic layer** (`model/`) — an optional, local-only Flask API
-   (`model/rrhh_api.py`) wrapping `RRHHBot` (`model/rrhh_bot.py`): sentence
-   embeddings for FAQ matching (`confianza`, `tipo`) + a pretrained sentiment
-   classifier (`sentimiento`). `model/orquestador.py` is the engine that
-   decides, for every call to `/reply`, whether that match is confident
-   enough to answer on its own or whether to escalate to the LLM connector
-   (`model/conectores.py`) — see "The three-tier chain" below; Python, not
-   n8n, orchestrates this. The static layer calls `/reply` opportunistically
-   (`MODEL_API` fetch with a short timeout) and degrades to the static fallback
-   message when it isn't reachable. The semantic layer must never become a hard
-   dependency of the static layer.
+## 2. Rules
 
-3. **Channel layer** (`model/whatsapp_service.py`) — an optional, local-only
-   second consumer of `RRHHBot`, independent of `rrhh_api.py`: a webhook
-   bridge to any WhatsApp Cloud API-compatible environment (the local emulator
-   in the sibling `whatsapp-emulator/` folder today — not part of this repo,
-   only a dev/test aid — or real Meta infrastructure later). It never runs in
-   CI or in the static deploy; it's a developer-run process for manual testing.
+### R0 — Transitivity safeguard
+- **Subjects:** every rule, every document, every citation.
+- **Principle:** **C must not contradict A through conceptual transitivity in
+  B.**
+- **Conceptual transitivity:** A reaches C through B when B shares a concept
+  with each of them (data, identity, exposure, waiting, a placeholder), even if
+  A and C share no word, subject or citation. B may be a rule, a definition, a
+  decision, a behaviour described in level 1, or a file that cites a rule.
+  Chains may be longer than three links. The order or numbering in which rules
+  are written is irrelevant: only the conceptual chain counts.
+- **Indirect conflict:** a base A leads to a bridge rule B; the wording of B
+  enables C; C negates A. B is then **conditionally inconsistent**: not false by
+  itself, but badly delimited. A formal example is in
+  [`DECISIONES.md`](DECISIONES.md#ejemplo-formal-de-r0).
+- **Rule:** applying A and then B must never require, permit or assume
+  something that C forbids, nor leave without support something that C relies
+  on. This holds for rules among themselves, and for every lower level against
+  them.
+- **A change that breaks the principle is not valid** until the chain is
+  resolved by changing a rule or what relies on it. Precedence does not resolve
+  it, and neither does deleting a citation while the behaviour it justified
+  remains.
+- **Two tools, at two different moments:**
+  1. **Defeasibility fixes the text.** The badly delimited link, normally the
+     bridge B, gets an exception written in that rule: B applies except where
+     applying it would activate C against A. This is what can make a change
+     valid.
+  2. **Normative hierarchy blocks execution.** Until the text is fixed, or when
+     an unforeseen collision appears, the weight given by the precedence of §0
+     lets the heavier rule block what negates it. With equal weight, the action
+     that negates the premise is not carried out. Blocking protects; it does not
+     make the text consistent, and the change stays invalid. A blocked step
+     still falls back as R8 requires.
+- **Procedure,** before changing or adding a rule or definition:
+  1. List the concepts it touches, including the ones it stops covering.
+  2. Follow each concept through rules, definitions, decisions, level 1 and
+     every file citing an affected rule, until no new link appears.
+  3. For each chain, state what its links force together and check it against
+     every rule in the chain.
+  4. A norm that something relies on may leave a rule only if another rule takes
+     it over, or the reliance is removed in the same change.
+  5. Record the chains in the matrix in [`DECISIONES.md`](DECISIONES.md), then
+     update `tests/trazabilidad.json`. A chain with no resolution is recorded as
+     such, and the change that introduced it is not merged.
+- **Not covered:** code that does not yet meet a rule is not a contradiction
+  between texts; it is a known gap (R13).
+- **Exception:** none.
 
-4. **Agentic layer** (`n8n/`) — a separate system, run by the team on their
-   own remote server (n8n + Ollama), outside this repo's CI and outside R1's
-   fictional-data scope: it answers by retrieving snippets from the **real**
-   Prebel documents (kept local-only, same as `.specs/`) and has a local LLM
-   (Ollama) **write** the answer from them, rather than choosing a pre-written
-   `faq_rrhh.json` entry. It never runs on the operator's machine and is not
-   covered by this repo's test harness (§3) — see `n8n/README.md`. It serves
-   two independent roles, unrelated to each other: (a) its own WhatsApp
-   puertas (`01-puerta-emulador.json`, `02-puerta-evolution.json`) call it
-   directly, exactly as before this section's pivot — unaffected by it; and
-   (b) it is one possible **secondary** backend behind the LLM connector
-   below (reachable over MCP), used only when the team points
-   `model/conectores.py` at it instead of a local or commercial alternative.
+### R1 — Public repository
+- **Subjects:** real data, repository.
+- **Rule:** the repository is public. It must never contain real personal data
+  (employee names, phone numbers, personal or corporate e-mails, salaries) or
+  policy figures taken from internal Prebel documents. This covers every
+  versioned file, n8n workflow exports included. The real source documents
+  (`.specs/`, `specs/`, `n8n/data/`, `n8n/insumos/`) stay ignored by git.
+  Before a commit that touches `model/` or `n8n/`, or adds content, check the
+  diff for phone numbers, corporate e-mails and real full names.
+- **Exception:** none.
 
-Data flow for FAQ content: `model/faq_rrhh.json` (source of truth, `ruta`/`area`
-per entry) → `catalogo.py` generates `dist/faq.js` (static consumer) and feeds
-`RRHHBot` directly (semantic and channel consumers). All three consumers read
-the same file; don't let them drift into separate copies of the same facts.
+### R2 — Static first
+- **Subjects:** portal, API, waiting time.
+- **Rule:** nothing in `dist/` may require the API, or any other backend, to
+  render or to complete its core flows. Every call to a backend has a fallback
+  that works without it, and a bounded wait that does not block the interface.
+- **Consequence:** a slow answer may be unavailable to the portal. That is an
+  accepted limit; lengthening the wait must not block the interface.
 
-### The three-tier chain (Predictive → ML → Agentic)
+### R3 — No secrets in client code
+- **Subjects:** portal, URLs, secrets.
+- **Rule:** `dist/` reaches every visitor. It must never hold keys, tokens or
+  non-public URLs. The default API address is the visitor's own machine. A
+  deployer may override it with `window.PREBEL_MODEL_API`, defined before
+  `app.js` loads, in the deployed copy only.
+- **Limit:** pointing the override at an API makes that API an answer surface
+  for whoever can open the page, so R11 applies.
 
-`model/orquestador.py` decides this for every call to `/reply` — Python
-orchestrates the chain, not n8n. The thresholds below are editable data
-(`model/arquitectura.json`), not hardcoded constants:
+### R4 — Fictitious demo people
+- **Subjects:** demo data.
+- **Rule:** people and organisational data used by the portal and the local
+  channel are fictitious and stay that way, even for a better demo.
 
-| Tier | Trigger | What happens |
-|---|---|---|
-| Predictive | `confianza` (from `RRHHBot.match()`) > `umbral_predictivo` (0.95) | The ML match is trusted as-is, no further step |
-| ML | `umbral_llm` (0.75) ≤ `confianza` ≤ `umbral_predictivo` | The local semantic answer is returned as-is |
-| Agentic (LLM) | `confianza` < `umbral_llm`, **or** the caller asks to continue (`seguir: true` in `/reply`'s body) | First checks `model/rag_retroalimentacion.py` for a question similar enough to one already answered before (`umbral_retroalimentacion`, 0.85) — if found, reuses that answer (`capa: "retroalimentacion"`, `tipo: "reusado"`) without calling the connector again; otherwise escalates to the active LLM connector (`model/conectores.py`), falling back to the ML answer already computed if it doesn't respond |
+### R5 — Placeholders and demo values
+- **Subjects:** FAQ, configuration, demo data, real data.
+- **Placeholders:** in any versioned file, a value in brackets (`[X]`,
+  `[sistema]`, `[URL ...]`) is one deliberately left unset. Code must treat a
+  configuration value still in brackets as not configured and keep the feature
+  off.
+- **FAQ values:** a value in `model/faq_rrhh.json` is either a placeholder or a
+  **fictitious example value**. A fictitious value is allowed only when it is
+  introduced on purpose, said to be fictitious in the commit, and shown as an
+  example in the answer the user reads (`ejemplo`). It must not be derived from
+  real documents.
+- **On hold:** the permission for fictitious values is not used until the team
+  confirms it in [`DECISIONES.md`](DECISIONES.md). Until then, FAQ values stay
+  as placeholders.
+- **Real values never enter the repository** (R1). A deployment that needs them
+  keeps them outside it.
+- **Exception:** none.
 
-When the LLM connector answers a question the earlier tiers didn't have
-with confidence, that question/answer is queued for manual review
-(`model/retroalimentacion.py`) — never auto-promoted into `faq_rrhh.json`
-(R1/R4 still apply to anything that might end up there). The reuse check
-above is what later *consumes* that queue automatically; it is not a
-fourth tier in this ratified chain, just an optimization inside the
-escalation step so the same question doesn't pay the LLM's cost twice.
+### R6 — Channel secrets
+- **Subjects:** secrets, WhatsApp bridge.
+- **Rule:** connection parameters and secrets of the WhatsApp bridge come from
+  environment variables or `.env`, never from versioned code. `.env` stays
+  ignored; after editing `.gitignore`, confirm it with
+  `git check-ignore -v .env`. `.env.example` holds placeholders that only work
+  against a local emulator.
 
-n8n's Cerebro remains reachable two ways, independent of each other: its own
-WhatsApp puertas call it directly (unaffected by this chain), and it can
-also serve as the LLM connector's backend over MCP (see layer 4 above) —
-in that second role it's what Tier "Agentic" above escalates to, when
-configured. `model/rrhh_api.py` also ships containerized (see `Dockerfile`
-and `docker-compose.yml`, the deployable monolith) so it's reachable from
-wherever a connector backend runs, not just from `127.0.0.1`.
+### R7 — Sender identification is not authentication
+- **Subjects:** personal data, WhatsApp bridge.
+- **Rule:** matching a phone number, or a document number typed in the chat, is
+  basic identification: anyone who claims it sees that data. It must never be
+  described as secure, or extended to anything sensitive (salary, documents,
+  changing data) without real verification added as an explicit step. It is
+  therefore not access control (R11).
 
-## 2. Railguards
+### R8 — Tier order and graceful fallback
+- **Subjects:** answer chain, API, connector, availability.
+- **Rule:** in any answer chain, cheaper and faster tiers are tried before
+  slower and heavier ones. Every escalation falls back: if the next tier is
+  missing, fails or does not answer, the chain returns what it already has, or
+  an explicit message. No tier is a hard dependency.
+- **Note:** reusing a queued answer is part of the escalation step, not a tier.
+  A caller's explicit request to continue may skip the confidence thresholds,
+  never the fallback.
 
-These are non-negotiable. A change that violates one of these is a bug, not a
-style preference.
+### R9 — Layer separation
+- **Subjects:** code structure, connector.
+- **Rule:** three responsibilities stay apart. **Matching**
+  (`model/rrhh_bot.py`) produces the match that both the predictive and the ML
+  decisions read. **Deciding** (`model/orquestador.py`) is the only module that
+  imports the connector and the queue reuse. **Reaching a model** at answer
+  time happens only through the connector interface.
+- Matching never imports deciding, the connector or the reuse. The reuse
+  receives the embedding model by injection.
+- **Out of scope:** offline tooling (`model/entrenar.py`) and the n8n system,
+  which is external to the Python chain.
 
-- **R1 — Public repo discipline.** `hdvergara/prebel-conecta` is a **public**
-  GitHub repo. Never commit real personal data: no real employee names, phone
-  numbers, personal/corporate emails, salaries, or policy figures from internal
-  Prebel documents. `specs/` (real HR source documents) is gitignored and stays
-  that way — never remove it from `.gitignore`, never copy its raw contact
-  details into a file that gets committed (`model/faq_rrhh.json` included).
-  Before any commit that touches `model/` or adds new content, grep the diff for
-  phone-number patterns, `@prebel.com.co` style emails, and real full names.
-- **R2 — Static-first.** Nothing in `dist/` may require the Flask API to
-  render or to complete its core flows. Any new feature that calls `MODEL_API`
-  must have a working fallback path that does not depend on the fetch
-  succeeding, and must not block the UI waiting on it beyond the existing
-  short timeout.
-- **R3 — No secrets in client code.** `dist/*.js` ships to every visitor's
-  browser. Never put API keys, tokens, or non-public URLs in it. `MODEL_API`
-  pointing at `127.0.0.1` is fine because it only ever resolves on the
-  operator's own machine.
-- **R4 — Demo data stays fictitious.** `catalogo.py`'s `personas`/`areas` data
-  (dist side) is fictitious by design ("Datos ficticios" in the footer) and
-  must stay that way. Do not replace it with real employee data, even for a
-  "better demo."
-- **R5 — Fictitious bracket placeholders ([X], [sistema], [portal]…) in
-  `faq_rrhh.json` are intentional template markers**, not bugs — don't silently
-  invent concrete values for them. If real values become available, source them
-  from `specs/` (local-only) and keep R1 in mind for anything derived from it.
-- **R6 — Channel secrets stay out of the repo.** `model/whatsapp_service.py`'s
-  connection parameters and secrets (`WA_ACCESS_TOKEN`, `WA_VERIFY_TOKEN`,
-  `WA_APP_SECRET`, …) are read from environment variables / `.env` only —
-  never hardcoded, never committed. `.env.example` holds placeholder values
-  that only work against a freshly started local emulator; `.env` itself is
-  gitignored at the repo root (not `prebel-conecta/.env` — this file *is* the
-  repo root, so that path never matched). If `.gitignore` is ever edited,
-  re-verify with `git check-ignore -v .env` that it's still excluded.
-- **R7 — WhatsApp sender identification is basic, not authentication.**
-  `whatsapp_service.py` has two identification paths, both equally informal:
-  `buscar_persona_por_telefono()` matches the sender's WhatsApp number
-  against `empleados_mock.json`'s fictitious `telefono` field (same spirit as
-  caller ID), and `buscar_persona_por_documento()` accepts whatever
-  `numero_documento` the sender types in chat (`IDENTIFICADOS_POR_DOCUMENTO`,
-  an in-memory, per-process cache — lost on restart, not shared across
-  processes) — self-reported, with no corroboration at all, weaker than the
-  phone match. Either way, anyone claiming that number or typing that
-  document number sees that data, with no further proof of identity. This is
-  deliberate and demo-appropriate, but neither is a trust boundary: never
-  extend either to anything sensitive (salary, documents, changing data)
-  without real verification (MFA or equivalent) first, and never describe
-  either to a user as secure. If that verification is added later, it
-  belongs in its own explicit step — don't silently upgrade either lookup's
-  trust level in place.
-- **R8 — The tier chain's order and fallthrough must be preserved.** Any
-  change touching the three-tier chain above (adding a tier, changing what
-  triggers escalation) must keep cheaper/faster tiers tried before
-  slower/heavier ones, and every escalation must be a graceful fallthrough,
-  never a hard dependency: `model/orquestador.py` falls back to the ML
-  answer already computed whenever the LLM connector returns `None`
-  (unconfigured, unreachable, or no answer), same as the Cerebro's own
-  `onError: continueErrorOutput` on its WhatsApp-side HTTP calls — same
-  spirit as R2, now applied across systems, not just within `dist/`. The
-  two thresholds live in `model/arquitectura.json`; changing them is editing
-  that data, not this file or the orchestrator's code.
-- **R9 — Layer separation.** The three tiers live in separate modules that
-  never import "downward": `model/rrhh_bot.py` (ML) must never import
-  `model/conectores.py`, `model/orquestador.py`, or
-  `model/rag_retroalimentacion.py` (enforced by `tests/test_arquitectura.py`,
-  not just documented here). The LLM tier is only ever reached through
-  `model/conectores.py`'s `ConectorLLM` interface — no other module calls a
-  specific backend (MCP, n8n, a commercial API) by name.
-  `model/rag_retroalimentacion.py` never imports `rrhh_bot` either — it
-  receives the embedding model by injection (`self.bot.model`, passed by
-  `model/orquestador.py`), the only module allowed to import it. Swapping
-  backends means changing what the connector points to,
-  never touching the orchestrator or the ML layer.
+### R10 — One role for n8n, and honest answers
+- **Subjects:** n8n, API, generated text.
+- **Rule:** in one deployment, an n8n brain is **either** a channel that calls
+  the API, **or** a backend behind the connector with an entry point that never
+  calls the API. Never both: that closes a loop.
+- A consumer of the API must not present generated text as a pre-written FAQ
+  answer. It tells the user an AI wrote it, or does not use it.
+
+### R11 — Exposure of answer surfaces
+- **Subjects:** answer surfaces, API, n8n, WhatsApp bridge, URLs, real data,
+  access control.
+- **Rule:** an answer surface runs only in controlled conditions. It must never
+  be reachable by an uncontrolled caller, whatever its data, connector or queue
+  hold.
+- **Not access control, alone or combined:** allowed origins, a URL parameter,
+  an unpublished address, a platform signature or webhook secret (they
+  authenticate the platform, not the person asking), and the identification of
+  R7.
+- **Published static content** is generated only from versioned files.
+- **Exception, MVP cross-origin:** during the MVP phase, no rule requires
+  restricting which origins may call the API from a browser, because the
+  environments are not defined and operate across each other. A call made by
+  the browser of a participant already inside controlled conditions counts as
+  that participant's, whatever page started it.
+  - It relaxes the origin only. Who can reach the surface, and access control,
+    do not change. It does not depend on what the data is.
+  - Cross-origin access must not allow credentials: otherwise any page could use
+    a participant's session, which would void access control.
+  - **Accepted risk:** another page open in a participant's browser can call the
+    API, read its answers and ask it to continue, which can reach the connector
+    and fill the queue.
+  - It ends when [`DECISIONES.md`](DECISIONES.md) records the environments as
+    defined. R11 is then amended under R0.
 
 ## 3. Harness
 
-"Done" means green on both suites below, not just "I read the code and it
-looks right."
+### R12 — Verification
+- **Subjects:** tests.
+- **Rule:** "done" means the three suites are green: Python
+  (`pytest tests`), JavaScript (`node --test tests/js`) and end to end
+  (Playwright, in `e2e/`). How to run them is in
+  [`README.md`](README.md#tests).
+- Unit tests use no network and no real model weights. End-to-end tests
+  intercept every call to the API, so they pass without a backend.
+- No test writes to a real data or state file: it redirects the module's path
+  to a temporary one. Anything needing a real model or server is a manual
+  integration check, and the PR says whether it was done.
+- Each end-to-end test documents Context / Given / When / Then.
 
-### Unit tests (pytest) — fast, no network, no real ML models
-
-- Location: `prebel-conecta/tests/`.
-- `RRHHBot` and the sentiment pipeline are **mocked** in unit tests
-  (`SentenceTransformer`/`pipeline` are patched before `RRHHBot()` is
-  constructed). Unit tests must run in well under a second each and must not
-  download or load the real ~1GB of model weights. If a test needs the real
-  model, it is not a unit test — it belongs in a manual/integration check, not
-  in this suite.
-- Run: `pytest prebel-conecta/tests -v` from the repo root (with `.venv`
-  active, `pip install -r prebel-conecta/requirements-dev.txt`).
-- `model/configuracion.py` and `model/retroalimentacion.py` keep their file
-  path in a module-level `RUTA` precisely so tests can `monkeypatch.setattr`
-  it to a `tmp_path` instead of touching the real `model/arquitectura.json`
-  or `model/retroalimentacion.json` — never point a test at the real files
-  (see `tests/test_configuracion.py`, `tests/test_retroalimentacion.py` for
-  the pattern). `tests/test_orquestador.py` applies this via an `autouse`
-  fixture so every test in that file gets an isolated, empty feedback
-  queue by default (`model/rag_retroalimentacion.py` is consulted on every
-  call, so leaving this unpatched anywhere `/reply` can escalate will
-  pollute the real file — this bit a test in `tests/test_rrhh_api.py`
-  before the fixture existed; any new test that escalates must patch
-  `retroalimentacion.RUTA` too). The real `model/conectores.py` MCP path is
-  never exercised in this suite either — its private transport call is
-  patched directly (see `tests/test_conectores.py`); an actual MCP server
-  is a manual/integration concern, same spirit as the real ML models above.
-
-### JS unit tests (Node's built-in `node:test`) — pure logic only
-
-- Location: `prebel-conecta/tests/js/`.
-- Only for pure helper functions extracted from `dist/app.js` logic
-  (`ownerLabel`, `rank`, `normalizeCatalog`, `weekdays`) via the same
-  vm-context load pattern used during development. No network, no browser.
-- Run: `node --test prebel-conecta/tests/js`.
-
-### E2E tests (Playwright) — real browser, mocked network boundary
-
-- Location: `prebel-conecta/e2e/`.
-- Tests drive the real static site in a real browser against the behavior
-  that must stay stable for every visitor. They do **not** depend on a real
-  Flask backend being installed or running: any call to `MODEL_API` is
-  intercepted with `page.route()` and given a fixed, deterministic JSON
-  response. This is the core of the **green test strategy** — e2e tests must
-  pass identically on a machine that has never installed `sentence-transformers`
-  or downloaded any model, and must never be flaky because a real model's
-  score shifted by a few hundredths.
-  Why this is safe: the Flask contract (`/reply` → `{reply, ruta, area,
-  confianza, sentimiento}`) is independently covered by the pytest suite above,
-  so e2e doesn't need to re-verify the model's own correctness — only that the
-  frontend wires that contract into the UI correctly.
-- Every spec file documents each test with a **Context / Given / When / Then**
-  comment block directly above the test body (see
-  `prebel-conecta/e2e/tests/search.spec.js` for the pattern). Context is the
-  page/state the test starts from; Given is the precondition; When is the
-  user action; Then is the observable outcome the assertion checks.
-- Run: `cd prebel-conecta/e2e && npx playwright install --with-deps chromium`
-  once, then `npx playwright test`.
-
-### Before calling anything done
-
-1. `pytest prebel-conecta/tests -v` — green.
-2. `node --test prebel-conecta/tests/js` — green.
-3. `npx playwright test` (from `prebel-conecta/e2e/`) — green.
-4. Re-read R1 against the actual diff if `model/` or anything derived from
-   `specs/` changed.
+### R13 — Documentation cohesion
+- **Subjects:** documentation.
+- **Rule:** each fact has one home, at its level; other documents link to it.
+  A change that alters behaviour updates level 1 in the same PR. A rule the code
+  does not meet yet is listed as a known gap in level 1, never silently
+  rewritten to match the code. `tests/test_documentacion.py` checks what a
+  machine can: links, cited rule IDs, citations of unversioned drafts and
+  threshold values. It also fails when a rule's text, or the set of files citing
+  it, differs from `tests/trazabilidad.json`, which forces the R0 procedure. It
+  cannot find a conceptual chain or prove the review was done well.
