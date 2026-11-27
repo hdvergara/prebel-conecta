@@ -53,7 +53,10 @@ conocidas en [`FLUJOS.md`](../FLUJOS.md).
    respuesta directamente (< 1 s) y se salta todo lo de abajo. Con `capa`
    `llm`, `retroalimentacion`, ausente u otro valor se descarta y sigue al
    nivel 2, que sí avisa que responde una IA (R10). Es una lista de valores
-   permitidos, no "distinto de `llm`". Si no responde, tarda
+   permitidos, no "distinto de `llm`". Tampoco se usa si la respuesta trae un
+   marcador entre corchetes del FAQ ficticio (`[X]`, `[sistema]`…): esa
+   pregunta la responde el nivel 2 con los documentos reales (D16 en
+   [`DECISIONES.md`](../DECISIONES.md)). Si no responde, tarda
    demasiado, o su confianza es baja, se sigue al nivel 2 sin bloquear nada
    (`onError: continueErrorOutput`, ver R8 en CONSTITUTION.md).
 3. **Nivel 2, Agentic -- RAG con los documentos reales:**

@@ -140,8 +140,10 @@ a la API, y la API pasa por `model/orquestador.py`.
    si `confianza ≥ 0.65` **y** `capa` es `predictivo` o `ml` (lista de valores
    permitidos). Con `capa` `llm`, `retroalimentacion`, ausente, `null` u otro
    valor descarta la respuesta y sigue al nivel Agentic, que sí avisa que
-   responde una IA (R10). Si la llamada falla, también sigue al nivel Agentic.
-   No usa `tipo`.
+   responde una IA (R10). Tampoco la usa si `reply` trae un marcador entre
+   corchetes (`[X]`, `[sistema]`…) del FAQ ficticio: esa pregunta la responde
+   el nivel Agentic con los documentos reales (D16). Si la llamada falla,
+   también sigue al nivel Agentic. No usa `tipo`.
 3. **Agentic** -- su propio RAG con Ollama (`embeddinggemma` +
    `gemma4:e2b`) sobre los documentos reales de Prebel.
 
@@ -150,7 +152,7 @@ flowchart TD
     N0["mensaje de WhatsApp"] --> N1{"¿saludo/menú?<br>(detector propio de n8n)"}
     N1 -->|sí| N2["respuesta de menú, instantánea"]
     N1 -->|no| N3["POST /reply (flujo 2)"]
-    N3 --> N4{"confianza ≥ 0.65<br>y capa es predictivo o ml?"}
+    N3 --> N4{"confianza ≥ 0.65,<br>capa es predictivo o ml<br>y reply sin marcadores [ ]?"}
     N4 -->|sí| N5["usa esa respuesta del FAQ"]
     N4 -->|no, o la llamada falla| N6["RAG propio con Ollama<br>sobre los documentos reales"]
 ```
@@ -195,10 +197,13 @@ estaba activo en el servidor del equipo se revisó el 2026-11-27 (RA-21).
 - **El portal espera 1,5 s** (R2). Si la API tarda más, por ejemplo al escalar
   al conector, el recuadro muestra el texto de respaldo y pierde también la
   respuesta ML que la API ya había calculado.
-- **El FAQ tapa temas del RAG de n8n.** Con el modelo real en local, preguntas
-  de vacaciones, certificado laboral y crédito de vivienda superan 0.65, así que
-  no llegan al RAG. Que esos temas estén en los documentos reales lo reporta el
-  equipo; no se ha verificado aquí.
+- **El FAQ tapaba temas del RAG de n8n.** Preguntas como vacaciones o
+  certificado laboral superan 0.65, así que no llegaban al RAG. Desde D16 el
+  Cerebro descarta las respuestas con marcadores: 13 de las 15 entradas van al
+  RAG. Las dos sin marcadores (crédito de vivienda y retiro de cesantías) siguen
+  en el Nivel 1 (RA-42). En el portal, WhatsApp local y la API el FAQ sigue
+  respondiendo igual. Que esos temas estén en los documentos reales lo reporta
+  el equipo; no se ha verificado aquí.
 - **13 de las 15 entradas del FAQ tienen marcadores** entre corchetes. R5
   permite reemplazarlos por ejemplos ficticios marcados; no se ha hecho.
 - **Flujo 3 (WhatsApp local) no pasa por el orquestador.**

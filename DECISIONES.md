@@ -23,6 +23,7 @@ Registro de por qué las reglas son como son. No crea reglas: las reglas viven e
 | D13 | Durante el MVP no se restringe el origen de las llamadas a la API desde un navegador: los ambientes no están definidos y operan en forma cruzada. Sin credenciales entre orígenes | R11 | Vigente, mientras dure el MVP |
 | D14 | Se aprueba la redacción de la salvaguarda de transitividad (RA-01) y se adopta su ejemplo formal. La derrotabilidad corrige el texto; la jerarquía normativa solo bloquea la ejecución | R0 | Vigente. Los pesos de la jerarquía están por confirmar (RA-37) |
 | D15 | Sin git, las comprobaciones que necesitan la lista de archivos se saltan con su motivo, sin lista alternativa. Un salto no cuenta como verde | R12 | Vigente. Por confirmar (RA-40) |
+| D16 | En el Cerebro de n8n, una respuesta del Nivel 1 que trae un marcador entre corchetes del FAQ ficticio no se usa: la pregunta sigue al Nivel 2, que responde con los documentos reales. El FAQ conserva sus marcadores y no cambia (cierra RA-12) | R1, R5, R8 | Vigente |
 
 Notas:
 
