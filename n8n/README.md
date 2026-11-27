@@ -9,9 +9,6 @@ cuando la pregunta no está en ellos.
 > No se suben nunca: ni los `.md` originales, ni `data/kb.json` (las fichas que
 > salen de ellos), ni `*.real.json` (el cerebro con nombres reales).
 
-> **Tarea pendiente (P1):** quien maneja n8n tiene los pasos en
-> [`INSTRUCCIONES_DEV_N8N.md`](INSTRUCCIONES_DEV_N8N.md).
-
 ## La idea: un cerebro y tres puertas
 
 ```mermaid
@@ -51,8 +48,12 @@ conocidas en [`FLUJOS.md`](../FLUJOS.md).
    al cerebro con `modo = clasificar`.
 2. **Nivel 1, ML -- `model/rrhh_api.py`:** se le pregunta primero a ese modelo
    (contenerizado en este mismo servidor, ver "Desplegar `model/rrhh_api.py`"
-   más abajo). Si responde con `confianza ≥ 0,65`, se usa esa respuesta
-   directamente (< 1 s) y se salta todo lo de abajo. Si no responde, tarda
+   más abajo). Si responde con `confianza ≥ 0,65` **y** `capa` es
+   `predictivo` o `ml` (texto escrito del FAQ, no generado), se usa esa
+   respuesta directamente (< 1 s) y se salta todo lo de abajo. Con `capa`
+   `llm`, `retroalimentacion`, ausente u otro valor se descarta y sigue al
+   nivel 2, que sí avisa que responde una IA (R10). Es una lista de valores
+   permitidos, no "distinto de `llm`". Si no responde, tarda
    demasiado, o su confianza es baja, se sigue al nivel 2 sin bloquear nada
    (`onError: continueErrorOutput`, ver R8 en CONSTITUTION.md).
 3. **Nivel 2, Agentic -- RAG con los documentos reales:**

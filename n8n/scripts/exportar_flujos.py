@@ -7,7 +7,7 @@ del equipo, así que no se puede agregar su ID verdadero hasta crearla allá.
 Mientras tanto, esa puerta se sigue editando a mano en el repositorio; no
 la sobrescribe correr este script.
 
-Uso (desde la raíz del proyecto, en el servidor):
+Uso (desde la carpeta n8n/ del repositorio, en el servidor):
     python3 -I scripts/exportar_flujos.py
 
 Qué escribe:
@@ -30,7 +30,7 @@ import urllib.request
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-SALIDA = RAIZ / "n8n" / "workflows"
+SALIDA = RAIZ / "workflows"
 FLUJOS = {
     "qqAw2jiKBTNB0Om8": "01-puerta-emulador",
     "AebrMdUeDZIrEYj4": "02-puerta-evolution",

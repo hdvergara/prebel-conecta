@@ -136,11 +136,12 @@ a la API, y la API pasa por `model/orquestador.py`.
 
 1. **Predictivo** -- su propio detector de saludo/menú (nodo *Detectar
    saludo*), independiente del de `rrhh_bot.py`.
-2. **ML** -- llama a `POST /reply` igual que el flujo 2, pero solo lee
-   `confianza` y `reply` de la respuesta; si `confianza ≥ 0.65` la usa
-   directo, sin mirar `capa`. Sin conector configurado y con la cola vacía,
-   lo que recibe es siempre una respuesta del FAQ. En otro caso, ver la
-   brecha B1.
+2. **ML** -- llama a `POST /reply` igual que el flujo 2 y usa `reply` solo
+   si `confianza ≥ 0.65` **y** `capa` es `predictivo` o `ml` (lista de valores
+   permitidos). Con `capa` `llm`, `retroalimentacion`, ausente, `null` u otro
+   valor descarta la respuesta y sigue al nivel Agentic, que sí avisa que
+   responde una IA (R10). Si la llamada falla, también sigue al nivel Agentic.
+   No usa `tipo`.
 3. **Agentic** -- su propio RAG con Ollama (`embeddinggemma` +
    `gemma4:e2b`) sobre los documentos reales de Prebel.
 
@@ -149,7 +150,7 @@ flowchart TD
     N0["mensaje de WhatsApp"] --> N1{"¿saludo/menú?<br>(detector propio de n8n)"}
     N1 -->|sí| N2["respuesta de menú, instantánea"]
     N1 -->|no| N3["POST /reply (flujo 2)"]
-    N3 --> N4{"confianza ≥ 0.65?"}
+    N3 --> N4{"confianza ≥ 0.65<br>y capa es predictivo o ml?"}
     N4 -->|sí| N5["usa esa respuesta del FAQ"]
     N4 -->|no, o la llamada falla| N6["RAG propio con Ollama<br>sobre los documentos reales"]
 ```
@@ -169,7 +170,6 @@ El seguimiento de estas brechas y del resto de pendientes está en
 
 | ID | Regla | Qué pasa hoy | Cuándo ocurre |
 |---|---|---|---|
-| B1 | R10 | El Cerebro acepta cualquier respuesta con `confianza ≥ 0.65` y la envía sin aviso de IA, aunque `capa` sea `llm` o `retroalimentacion` | La API tiene conector configurado o cola con datos, y la confianza queda entre 0.65 y 0.75 |
 | B2 | R11 | Nada en el código impide abrir la API a llamadas no controladas | Depende de quien despliega |
 | B3 | R10 | Nada en el código impide apuntar el conector a un Cerebro que llame a la API | Solo si alguien monta ese servidor MCP |
 | B4 | R11 | La puerta Web es `public: true` y no tiene control de acceso; *Allowed Origins* y `?chat=demo` no lo son | Si el workflow está activo en una dirección alcanzable |
@@ -178,7 +178,9 @@ El seguimiento de estas brechas y del resto de pendientes está en
 | B8 | R10 | El portal ignora `capa` y muestra toda respuesta bajo "Respuesta del modelo (IA)": un texto generado no se distingue de una respuesta del FAQ | La API devuelve `capa` `llm` o `retroalimentacion` a tiempo, algo posible sobre todo con la cola, que no llama a un modelo |
 
 Todas se deducen del código y de los workflows exportados; no se han ejecutado.
-No se ha comprobado qué está activo en el servidor del equipo.
+B1 (el Cerebro aceptaba texto generado sin aviso) se cerró: ver RA-15 en
+[`REQUERIMIENTOS_ABIERTOS.md`](REQUERIMIENTOS_ABIERTOS.md), Cerrados. Lo que
+estaba activo en el servidor del equipo se revisó el 2026-11-27 (RA-21).
 
 ### Límites aceptados o pendientes
 

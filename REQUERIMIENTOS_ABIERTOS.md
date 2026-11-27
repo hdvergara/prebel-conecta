@@ -41,6 +41,7 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 | RA-13 | Completar los marcadores del FAQ (13 de 15 entradas). Depende de RA-02; los valores reales no pueden entrar al repositorio | R1, R5 | Se completan o se decide dejarlos |
 | RA-14 | Decidir si los detectores de saludo siguen separados (hay tres) | FLUJOS §4 | Se registra la decisión |
 | RA-38 | Decidir si el bloqueo por jerarquía se implementa en el código. El ejemplo formal lo describe automático; hoy no hay ningún mecanismo y se aplica al revisar | R0, D14 | Se implementa y se prueba, o se decide que es un control de revisión |
+| RA-41 | Decidir la propuesta `solo_local`: que la API pueda responder sin usar el conector ni la cola (por ejemplo, para el Cerebro de n8n). Hoy la API no la admite | R10 | Se aprueba e implementa con pruebas, o se descarta |
 
 ## 3. Brechas: el código no cumple una regla
 
@@ -48,7 +49,6 @@ El detalle y las condiciones de cada una están en [`FLUJOS.md`](FLUJOS.md) §4.
 
 | ID | Brecha | Resumen | Se cierra cuando |
 |---|---|---|---|
-| RA-15 | B1 | n8n puede enviar texto generado sin aviso de IA | El Cerebro mira `capa` y avisa o descarta, con evidencia |
 | RA-16 | B2 | Nada en el código impide abrir la API a llamadas no controladas | Existe un control o una verificación de despliegue |
 | RA-17 | B3 | Nada impide el ciclo API → n8n → API | Existe una entrada de backend que no llama a la API, o un control |
 | RA-18 | B4 | La puerta Web no tiene control de acceso | Cumple R11 |
@@ -60,8 +60,7 @@ El detalle y las condiciones de cada una están en [`FLUJOS.md`](FLUJOS.md) §4.
 
 | ID | Requerimiento | Se cierra cuando |
 |---|---|---|
-| RA-21 | **Prioritario.** Comprobar qué está activo en el servidor del equipo y quién lo alcanza. Una puerta abierta y conectada a documentos reales los estaría exponiendo | Se revisa el servidor y se registra el resultado |
-| RA-22 | Ejecutar las brechas B1 a B6 y B8, hoy deducidas del código y de los workflows exportados | Cada una se reproduce o se descarta |
+| RA-22 | Ejecutar las brechas B2 a B6 y B8, hoy deducidas del código y de los workflows exportados (B1 se cerró con RA-15) | Cada una se reproduce o se descarta |
 | RA-23 | Comprobar que los temas que el Nivel 1 responde están en los documentos reales (lo reporta el equipo) | Se compara con las fichas, sin copiarlas al repositorio |
 | RA-24 | Medir la latencia del Nivel 2: se reportaron 6–9 s y el repositorio documenta 20–26 s | Hay una medición con sus condiciones (modelo cargado o en frío) |
 | RA-25 | Repetir en el servidor las confianzas medidas solo con el modelo local | Hay resultados del servidor |
@@ -74,7 +73,7 @@ El detalle y las condiciones de cada una están en [`FLUJOS.md`](FLUJOS.md) §4.
 
 Prioridad **propuesta**, pendiente de que el equipo la confirme. Criterios, en
 orden: cumplir una regla; ser requisito de otro punto; cuándo empieza el daño.
-Ordena **solo esta sección**: no antecede a RA-21 ni a las brechas de acceso
+Ordena **solo esta sección**: no antecede a las brechas de acceso
 (R11, RA-16 y RA-18 a RA-20).
 
 - **P1:** necesario antes de configurar un conector o de usar una cola con datos.
@@ -84,15 +83,14 @@ Ordena **solo esta sección**: no antecede a RA-21 ni a las brechas de acceso
 
 | ID | Prioridad | Requerimiento | Referencia | Depende de | Por qué ahí |
 |---|---|---|---|---|---|
-| RA-34 | P1 | El Cerebro de n8n no usa `tipo` ni `capa` de la API | R10 | -- | Es el arreglo de RA-15: se resuelven juntos |
 | RA-31 | P1 | El portal no muestra `capa`, `tipo` ni `guia`, así que no explica por qué respondió así | R10, FLUJOS §2 | -- | Su parte urgente, avisar del texto generado, cierra RA-39. Explicar el porqué y mostrar `guia` es P3 |
 | RA-32 | P2 | Si la API tarda más que la espera del portal, se pierde también la respuesta ML ya calculada | R2, R8 | -- | Hoy casi no se nota; aparece al conectar un modelo lento |
 | RA-30 | P3 | El portal no ofrece "seguir buscando": nunca envía `seguir` | R8 | RA-31, RA-32, RA-26 | Sin conector ni cola, el botón devolvería la misma respuesta; con un modelo lento, el portal la perdería |
-| RA-33 | P3 | WhatsApp local no pasa por el orquestador | FLUJOS §4 | Decidirlo; RA-34 como referencia del aviso | Al unificarlo, ese canal puede recibir texto generado: necesita el aviso (R10) y revisar cómo personaliza con datos (R7) |
+| RA-33 | P3 | WhatsApp local no pasa por el orquestador | FLUJOS §4 | Decidirlo; RA-34 (cerrado) como referencia del aviso | Al unificarlo, ese canal puede recibir texto generado: necesita el aviso (R10) y revisar cómo personaliza con datos (R7) |
 | RA-35 | P4 | Llevar una respuesta de la cola al FAQ es manual: solo se puede listar | R5, D4 | RA-02, RA-26 | La revisión manual es la decisión vigente; facilitarla exige además cumplir R1 |
 | RA-36 | P4 | `n8n/scripts/exportar_flujos.py` no exporta la puerta Web, que aún no tiene identificador en el servidor | -- | RA-18 | La puerta no puede activarse mientras no cumpla R11 |
 
-Orden de trabajo propuesto: RA-34 y RA-31 (aviso) → RA-32 → RA-30 → RA-33 →
+Orden de trabajo propuesto: RA-31 (aviso) → RA-32 → RA-30 → RA-33 →
 RA-35 y RA-36.
 
 Cada punto de esta sección se cierra cuando está implementado y probado, o
@@ -103,3 +101,6 @@ cuando se decide no hacerlo.
 | ID | Requerimiento | Cierre |
 |---|---|---|
 | RA-01 | Redacción de la salvaguarda de transitividad, con su definición y su procedimiento | Aprobada por el equipo, con ejemplo formal ([`DECISIONES.md`](DECISIONES.md), D14) |
+| RA-15 | B1: n8n podía enviar texto generado sin aviso de IA | 2026-11-27. El nodo *¿Hay respuesta segura del FAQ?* del Cerebro exige además `capa` en `['predictivo','ml']` (lista de valores permitidos); lo demás sigue al Nivel 2, que avisa. Evidencia en el PR: casos 1–9 de la tarea y dos preguntas reales en el servidor |
+| RA-34 | El Cerebro de n8n no usaba `tipo` ni `capa` de la API | 2026-11-27, junto con RA-15: usa `capa`; `tipo` no hace falta para esta regla |
+| RA-21 | Comprobar qué está activo en el servidor del equipo y quién lo alcanza | 2026-11-27. La puerta Web y la de Evolution estaban activas, sin control de acceso y conectadas a documentos reales: se apagaron ese día. Las ejecuciones guardadas (desde el 2026-11-23) solo muestran personas del equipo; las anteriores ya no existen. La puerta Emulador sigue activa detrás del inicio de sesión del emulador (B5 sigue abierta). También se quitó un proxy `/api/reply` del portal del servidor (RA-10, RA-16). La demo se muestra desde una sesión de n8n |

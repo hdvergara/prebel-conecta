@@ -7,7 +7,6 @@
     "huella": "19d6e2aeacd9ee1b",
     "citan": [
       "REQUERIMIENTOS_ABIERTOS.md",
-      "n8n/INSTRUCCIONES_DEV_N8N.md",
       "tests/test_documentacion.py"
     ]
   },
@@ -18,8 +17,7 @@
       "REQUERIMIENTOS_ABIERTOS.md",
       "e2e/tests/tramites.spec.js",
       "model/empleados_mock.json",
-      "model/retroalimentacion.py",
-      "n8n/INSTRUCCIONES_DEV_N8N.md"
+      "model/retroalimentacion.py"
     ]
   },
   "R2": {
@@ -70,7 +68,6 @@
     "citan": [
       "REQUERIMIENTOS_ABIERTOS.md",
       "model/whatsapp_service.py",
-      "n8n/INSTRUCCIONES_DEV_N8N.md",
       "tests/test_whatsapp_service.py"
     ]
   },
@@ -82,7 +79,6 @@
       "model/configuracion.py",
       "model/orquestador.py",
       "model/rag_retroalimentacion.py",
-      "n8n/INSTRUCCIONES_DEV_N8N.md",
       "n8n/README.md",
       "n8n/workflows/03-cerebro-ia.json",
       "tests/test_orquestador.py"
@@ -104,8 +100,8 @@
     "citan": [
       "FLUJOS.md",
       "REQUERIMIENTOS_ABIERTOS.md",
-      "n8n/INSTRUCCIONES_DEV_N8N.md",
-      "n8n/README.md"
+      "n8n/README.md",
+      "n8n/workflows/03-cerebro-ia.json"
     ]
   },
   "R11": {
@@ -117,7 +113,6 @@
       "REQUERIMIENTOS_ABIERTOS.md",
       "dist/app.js",
       "model/rrhh_api.py",
-      "n8n/INSTRUCCIONES_DEV_N8N.md",
       "n8n/README.md",
       "n8n/workflows/04-puerta-web.json",
       "tests/test_rrhh_api.py"
@@ -129,7 +124,6 @@
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "SETUP_AND_DEPLOY.md",
-      "n8n/INSTRUCCIONES_DEV_N8N.md",
       "tests/test_documentacion.py"
     ]
   },
