@@ -53,4 +53,5 @@ resolverla es RA-44.
 
 El autoservicio del portal (perfil, trámites, vacaciones, certificados y
 documentos) es otro dominio y todavía no está especificado (RA-45). Sus pruebas
-de extremo a extremo siguen vigentes.
+de extremo a extremo siguen vigentes. Sobre los archivos que el portal no carga, ver
+[`FLUJOS.md`](../FLUJOS.md) §4.

@@ -33,5 +33,6 @@ portal y en el Cerebro. El detalle está en [`FLUJOS.md`](../../FLUJOS.md).
 | ESC-CAN-05 | Dada una respuesta de la API con texto generado o sin origen, cuando la recibe el Cerebro, entonces no la usa como FAQ (R10) | RA-15 |
 | ESC-CAN-06 | Dada una respuesta del FAQ con marcadores, cuando la recibe el Cerebro, entonces sigue al Nivel 2 | RA-12 |
 | ESC-CAN-07 | Dado texto generado, cuando lo muestra el portal, entonces avisa que lo escribió una IA o no lo usa (R10) | RA-39 |
-| ESC-CAN-08 | Dada una puerta de n8n activa, cuando la alcanza alguien no controlado, entonces se rechaza antes de procesar (R11) | RA-09 |
+| ESC-CAN-08 | Dada la puerta Web de n8n activa, cuando la alcanza alguien no controlado, entonces se rechaza antes de procesar (R11) | RA-18 |
 | ESC-CAN-09 | Dado el puente local, cuando está en marcha, entonces nadie no controlado lo alcanza (R11) | RA-20 |
+| ESC-CAN-10 | Dada una puerta de WhatsApp de n8n activa, cuando escribe alguien no verificado, entonces se rechaza antes de procesar (R11) | RA-19 |

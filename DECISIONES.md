@@ -26,6 +26,7 @@ Registro de por qué las reglas son como son. No crea reglas: las reglas viven e
 | D16 | En el Cerebro de n8n, una respuesta del Nivel 1 que trae un marcador entre corchetes del FAQ ficticio no se usa: la pregunta sigue al Nivel 2, que responde con los documentos reales. El FAQ conserva sus marcadores y no cambia (cierra RA-12). Las entradas sin marcadores que superan el umbral siguen en el Nivel 1 (RA-42) | R1, R5, R8 | Vigente |
 | D17 | El repositorio trabaja con especificación primero y diseño guiado por el dominio, sin mover código, en Markdown propio. La carpeta es `especificaciones/` porque `specs/` y `.specs/` guardan documentos reales y git las ignora | R1, R13, R14 | Vigente. El texto de R14 está por confirmar (RA-43) |
 | D18 | Los asistentes (Claude, ChatGPT, Codex, Antigravity) comparten una sola fuente, `AGENTS.md`, con adaptadores sin contenido propio. Lo que un asistente puede leer y hacer es una regla (R15), no una instrucción de herramienta | R12, R13, R15 | Vigente. El texto de R15 está por confirmar (RA-46) |
+| D19 | Las tareas se derivan de los requerimientos abiertos, uno en exactamente una tarea, sin repetir su texto. Responsables y orden son una propuesta | R13, R14, R15 | Vigente |
 
 Notas:
 
@@ -134,5 +135,14 @@ aquí no está revisada.
 | Asistentes, secretos | Excepción de R15 (autorizar lectura) → `.env` → R6 | La excepción podía alcanzar los secretos | La excepción nunca cubre secretos ni permite publicar el contenido |
 | Asistentes, exposición | R15 (no cambia superficies sin que se lo pidan) → R14 (reducir exposición no espera) → R11 | Podía leerse como freno a apagar una puerta | Limita al asistente por iniciativa propia; si la persona lo pide, actúa sin esperar especificación |
 | Asistentes, verificación | ChatGPT sin ejecución → "terminado" → R12 | Un asistente que no ejecuta podía dar algo por verificado | Su texto prohíbe afirmarlo; R12 verifica fuera |
+| Tareas | Tarea "Lista" → permiso para ejecutarla → R15 y R11 | Un asistente podía leer una tarea lista como autorización | Las tareas no autorizan nada y "Lista" no significa aprobada |
+| Tareas, documentación | Tareas → requerimientos → R13 (un hecho, un lugar) | La tarea podía repetir el requerimiento y su cierre y quedar distinta | La tarea cita IDs. La prueba comprueba la cobertura, no la repetición: eso se revisa |
+| Tareas, exposición | Orden por olas → especificar primero (R14) → apagar una puerta (R11) | El plan podía hacer esperar una reducción de exposición | La ola 0 va primero y reducir exposición no espera |
+| Niveles | Orden de la tabla de niveles (§0) → "cada nivel se apoya en los de arriba" → las tareas se derivan de los requerimientos abiertos | Las tareas quedaban encima de aquello en lo que se apoyan | Su fila va al final de la tabla |
+| Tareas, especificación | Texto del plan → "primero la especificación" → R14 permite el mismo PR | El plan exigía más que la regla: creaba una | El plan repite la condición de R14 |
+| Tareas, cierre | Cerrar un requerimiento → la prueba exige editar las tareas → "las tareas no crean nada" | El cierre tenía un paso que su procedimiento no decía | El paso está en el procedimiento de cierre de los requerimientos |
+| Especificación, tareas | Escenario con evidencia en una decisión → se cierra la decisión → R14 exige prueba o comprobación manual | El escenario de las puertas quedaba sin evidencia válida | Un escenario por puerta, con evidencia en la brecha que lo aplica |
+| Tareas, exposición | TAR-16 "reproducir antes de corregir" → orden de olas → reducir exposición no espera | Reproducir podía frenar una corrección o pedir reactivar puertas | Se reproduce en condiciones controladas y corregir no espera |
+| Pruebas | `tests/*.cjs` fuera de las suites → R12 → `DEMO.md` | Una guía remitía a pruebas que no cuentan para dar algo por terminado | Se registra en RA-49; no se cambia R12 |
 | Portal | R11 → R2 | Sin superficie pública, el recuadro del modelo no responde en una copia publicada | Lo permite R2: el portal funciona sin backend |
 | Pruebas | R12 → R2 | Las pruebas de extremo a extremo no podían depender del backend | Interceptan toda llamada a la API |

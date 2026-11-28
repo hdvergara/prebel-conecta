@@ -104,4 +104,5 @@ n8n local" de [`n8n/README.md`](n8n/README.md).
 | Desplegar el contenedor del Tier 1 en el servidor del equipo | `Dockerfile`, `n8n/README.md` → "Cómo montarlo en otro n8n" |
 | Abrir un PR | este documento §3, `CONSTITUTION.md` R12 (qué debe quedar en verde) |
 | Cambiar cómo responde algo | [`especificaciones/`](especificaciones/README.md): primero el escenario |
+| Saber qué toca hacer y quién | [`especificaciones/TAREAS.md`](especificaciones/TAREAS.md) |
 | Cambiar una regla | `CONSTITUTION.md` §0 (control de transitividad), `DECISIONES.md` |
