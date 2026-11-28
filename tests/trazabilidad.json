@@ -1,21 +1,28 @@
 {
   "§0": {
-    "huella": "7691162b139d3f67",
+    "huella": "4e94b1edde4b9d01",
     "citan": []
   },
   "R0": {
     "huella": "19d6e2aeacd9ee1b",
     "citan": [
+      ".github/pull_request_template.md",
       "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/README.md",
+      "especificaciones/cambios/PLANTILLA.md",
       "tests/test_documentacion.py"
     ]
   },
   "R1": {
     "huella": "f3347db4579b70da",
     "citan": [
+      ".github/pull_request_template.md",
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "e2e/tests/tramites.spec.js",
+      "especificaciones/README.md",
+      "especificaciones/contextos/faq.md",
+      "especificaciones/contextos/retroalimentacion.md",
       "model/empleados_mock.json",
       "model/retroalimentacion.py"
     ]
@@ -29,6 +36,7 @@
       "e2e/tests/chat-bubble.spec.js",
       "e2e/tests/faq.spec.js",
       "e2e/tests/model-box.spec.js",
+      "especificaciones/contextos/canales.md",
       "n8n/README.md"
     ]
   },
@@ -37,6 +45,8 @@
     "citan": [
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/contextos/canales.md",
+      "especificaciones/contextos/respuesta.md",
       "n8n/README.md"
     ]
   },
@@ -44,6 +54,7 @@
     "huella": "190bbb85f4a5d564",
     "citan": [
       "README.md",
+      "especificaciones/contextos/canales.md",
       "model/empleados_mock.json"
     ]
   },
@@ -55,6 +66,10 @@
       "REQUERIMIENTOS_ABIERTOS.md",
       "dist/app.js",
       "e2e/tests/chat-bubble.spec.js",
+      "especificaciones/contextos/canales.md",
+      "especificaciones/contextos/faq.md",
+      "especificaciones/contextos/retroalimentacion.md",
+      "especificaciones/dominio.md",
       "model/retroalimentacion.py",
       "n8n/README.md",
       "n8n/workflows/03-cerebro-ia.json"
@@ -62,12 +77,15 @@
   },
   "R6": {
     "huella": "2c89e60ab071e27b",
-    "citan": []
+    "citan": [
+      "especificaciones/contextos/canales.md"
+    ]
   },
   "R7": {
     "huella": "9d7be6b6a7d0fd1e",
     "citan": [
       "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/contextos/canales.md",
       "model/whatsapp_service.py",
       "tests/test_whatsapp_service.py"
     ]
@@ -77,6 +95,8 @@
     "citan": [
       "FLUJOS.md",
       "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/contextos/respuesta.md",
+      "especificaciones/contextos/retroalimentacion.md",
       "model/configuracion.py",
       "model/orquestador.py",
       "model/rag_retroalimentacion.py",
@@ -89,6 +109,10 @@
     "huella": "094eb1eec5c2e231",
     "citan": [
       "FLUJOS.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/contextos/faq.md",
+      "especificaciones/contextos/respuesta.md",
+      "especificaciones/contextos/retroalimentacion.md",
       "model/conectores.py",
       "model/orquestador.py",
       "model/rag_retroalimentacion.py",
@@ -101,6 +125,9 @@
     "citan": [
       "FLUJOS.md",
       "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/contextos/canales.md",
+      "especificaciones/contextos/respuesta.md",
+      "especificaciones/contextos/retroalimentacion.md",
       "n8n/README.md",
       "n8n/workflows/03-cerebro-ia.json"
     ]
@@ -113,6 +140,8 @@
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "dist/app.js",
+      "especificaciones/contextos/canales.md",
+      "especificaciones/contextos/respuesta.md",
       "model/rrhh_api.py",
       "n8n/README.md",
       "n8n/workflows/04-puerta-web.json",
@@ -122,9 +151,12 @@
   "R12": {
     "huella": "4654edc90f2d08b7",
     "citan": [
+      ".github/pull_request_template.md",
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "SETUP_AND_DEPLOY.md",
+      "especificaciones/README.md",
+      "especificaciones/cambios/PLANTILLA.md",
       "tests/test_documentacion.py"
     ]
   },
@@ -132,6 +164,16 @@
     "huella": "034d20c3529e42c8",
     "citan": [
       "tests/test_documentacion.py"
+    ]
+  },
+  "R14": {
+    "huella": "5d14d548d4d5c757",
+    "citan": [
+      ".github/pull_request_template.md",
+      "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/README.md",
+      "tests/test_especificaciones.py"
     ]
   }
 }

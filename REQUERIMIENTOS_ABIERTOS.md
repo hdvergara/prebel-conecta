@@ -27,6 +27,7 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 | RA-06 | Confirmar que el acceso entre orígenes no admite credenciales (condición agregada a la excepción MVP) | R11, D13 | Se confirma, o se enmienda si un ambiente autentica con cookies o autenticación básica |
 | RA-37 | Confirmar cómo pesa la jerarquía normativa: usa las clases de precedencia (protección de datos, disponibilidad, comportamiento), no cuál regla originó la cadena; con peso igual no se ejecuta lo que niega la premisa | R0, D14 | El equipo lo aprueba o define otro criterio para la regla fundacional |
 | RA-40 | Confirmar que una comprobación saltada por falta de git no cuenta como verde (condición agregada al resolver la revisión del PR) | R12, D15 | El equipo la aprueba o la corrige |
+| RA-43 | Confirmar el texto de la regla de especificación primero, con su excepción para reducir exposición y la evidencia manual | R14, D17 | El equipo la aprueba o la corrige |
 
 ## 2. Por decidir
 
@@ -41,6 +42,8 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 | RA-14 | Decidir si los detectores de saludo siguen separados (hay tres) | FLUJOS §4 | Se registra la decisión |
 | RA-38 | Decidir si el bloqueo por jerarquía se implementa en el código. El ejemplo formal lo describe automático; hoy no hay ningún mecanismo y se aplica al revisar | R0, D14 | Se implementa y se prueba, o se decide que es un control de revisión |
 | RA-41 | Decidir la propuesta `solo_local`: que la API pueda responder sin usar el conector ni la cola (por ejemplo, para el Cerebro de n8n). Hoy la API no la admite | R10 | Se aprueba e implementa con pruebas, o se descarta |
+| RA-44 | Resolver o aceptar la dependencia circular entre los contextos `respuesta` y `retroalimentacion` (el reuso importa la configuración de la respuesta) | R9, D17 | Se inyecta el umbral y se actualiza el mapa, o se acepta |
+| RA-45 | Decidir si se especifica el autoservicio del portal (perfil, trámites, vacaciones, certificados y documentos), hoy fuera de los contextos | D17 | Se crean sus contextos o se declara fuera de alcance |
 
 ## 3. Brechas: el código no cumple una regla
 

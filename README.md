@@ -16,6 +16,13 @@ Para el detalle de **qué camino toma cada pregunta** según por dónde entra
 (portal, WhatsApp local, WhatsApp/chat por n8n), ver [`FLUJOS.md`](FLUJOS.md).
 Lo de abajo es el detalle de instalar y correr el portal localmente.
 
+## Cómo se trabaja un cambio
+
+Especificación primero y diseño guiado por el dominio (R14): los contextos, el
+lenguaje común y el ciclo de un cambio están en
+[`especificaciones/`](especificaciones/README.md). No es `specs/` ni `.specs/`,
+que guardan documentos reales y git ignora.
+
 ## Requerimientos abiertos
 
 Lo que no está confirmado, decidido, implementado o verificado está en
