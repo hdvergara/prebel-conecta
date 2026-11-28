@@ -31,7 +31,8 @@ todos parten de [`AGENTS.md`](AGENTS.md); cómo conectar cada uno está en
 
 Lo que no está confirmado, decidido, implementado o verificado está en
 [`REQUERIMIENTOS_ABIERTOS.md`](REQUERIMIENTOS_ABIERTOS.md). **Cada punto se
-trata como un requerimiento abierto** y no debe darse por resuelto. Antes de
+trata como un requerimiento abierto** y no debe darse por resuelto. El plan de
+trabajo derivado está en [`especificaciones/TAREAS.md`](especificaciones/TAREAS.md). Antes de
 desplegar o de mostrar la demo, revisa ahí lo relativo al acceso (las puertas de
 n8n hoy no cumplen R11) y lo que falta verificar en el servidor.
 
@@ -234,6 +235,11 @@ de [`n8n/README.md`](n8n/README.md) para el procedimiento.
   local (qué hace cada archivo: [`FLUJOS.md`](FLUJOS.md) §5), más
   `faq_rrhh.json` (contenido del FAQ), `empleados_mock.json` (los 4 perfiles
   ficticios) y `entrenar.py` (ver [`MODEL_TRAINING.md`](MODEL_TRAINING.md)).
+- `CONSTITUTION.md`, `FLUJOS.md`, `DECISIONES.md`,
+  `REQUERIMIENTOS_ABIERTOS.md` — reglas, comportamiento, decisiones y
+  pendientes.
+- `especificaciones/` — dominio, contextos, [tareas](especificaciones/TAREAS.md)
+  e instrumentos; `AGENTS.md` (y `CLAUDE.md`, que lo importa) para asistentes.
 - `n8n/` — canal de WhatsApp y burbuja de chat del portal en n8n (flujos
   exportados + scripts de la base de conocimiento). Ver
   [`n8n/README.md`](n8n/README.md).

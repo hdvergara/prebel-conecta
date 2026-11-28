@@ -1,5 +1,9 @@
 # Prebel Conecta: demostración
 
+> **Desactualizado (RA-49).** Este recorrido describe una versión del portal que
+> `dist/index.html` no carga hoy. No lo uses para preparar una demostración; para
+> el portal actual, ver [`README.md`](README.md).
+
 Sitio estático con datos ficticios. El selector representa perfiles; no es autenticación ni autorización de producción. Los casos, contenidos y valoraciones se guardan en localStorage y se comparten únicamente entre perfiles del mismo navegador y origen. No usar datos reales. Sin integración con nómina, IA generativa o WhatsApp.
 
 ## Recorrido sugerido (5 minutos)

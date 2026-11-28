@@ -1,6 +1,6 @@
 {
   "§0": {
-    "huella": "67bdfed8ebdfcacf",
+    "huella": "be82f930f2dd8be3",
     "citan": []
   },
   "R0": {
@@ -25,6 +25,7 @@
       "REQUERIMIENTOS_ABIERTOS.md",
       "e2e/tests/tramites.spec.js",
       "especificaciones/README.md",
+      "especificaciones/TAREAS.md",
       "especificaciones/contextos/faq.md",
       "especificaciones/contextos/retroalimentacion.md",
       "especificaciones/instrumentos/revisar.md",
@@ -150,6 +151,7 @@
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "dist/app.js",
+      "especificaciones/TAREAS.md",
       "especificaciones/contextos/canales.md",
       "especificaciones/contextos/respuesta.md",
       "especificaciones/instrumentos/revisar.md",
@@ -176,6 +178,7 @@
   "R13": {
     "huella": "034d20c3529e42c8",
     "citan": [
+      "REQUERIMIENTOS_ABIERTOS.md",
       "especificaciones/instrumentos/README.md",
       "tests/test_documentacion.py"
     ]
@@ -188,6 +191,7 @@
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "especificaciones/README.md",
+      "especificaciones/TAREAS.md",
       "tests/test_especificaciones.py"
     ]
   },
@@ -196,6 +200,7 @@
     "citan": [
       "AGENTS.md",
       "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/TAREAS.md",
       "especificaciones/instrumentos/README.md",
       "especificaciones/instrumentos/chatgpt.md",
       "especificaciones/instrumentos/implementar.md"

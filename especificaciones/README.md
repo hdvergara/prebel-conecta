@@ -12,6 +12,7 @@ el dominio**, sin mover el código.
 | Archivo | Para qué |
 |---|---|
 | [`dominio.md`](dominio.md) | Lenguaje común y mapa de contextos |
+| [`TAREAS.md`](TAREAS.md) | Plan de trabajo derivado de los requerimientos abiertos |
 | [`contextos/faq.md`](contextos/faq.md) | FAQ y coincidencia |
 | [`contextos/respuesta.md`](contextos/respuesta.md) | Decidir qué respuesta se entrega |
 | [`contextos/retroalimentacion.md`](contextos/retroalimentacion.md) | Cola y reuso |

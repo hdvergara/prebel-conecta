@@ -11,6 +11,9 @@ resuelto.
   [`DECISIONES.md`](DECISIONES.md) o con evidencia (prueba o verificación
   descrita en el PR). No se borra: pasa a **Cerrado**, con su referencia.
 - Si cerrarlo cambia una regla, se aplica R0.
+- Al cerrarlo, se quita también de su tarea (una prueba lo comprueba).
+- La propuesta de quién mueve cada punto, y en qué orden, está en
+  [`especificaciones/TAREAS.md`](especificaciones/TAREAS.md).
 - Estado de todos los puntos listados abajo: **Abierto**.
 
 ## 1. Por confirmar
@@ -46,6 +49,9 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 | RA-44 | Resolver o aceptar la dependencia circular entre los contextos `respuesta` y `retroalimentacion` (el reuso importa la configuración de la respuesta) | R9, D17 | Se inyecta el umbral y se actualiza el mapa, o se acepta |
 | RA-45 | Decidir si se especifica el autoservicio del portal (perfil, trámites, vacaciones, certificados y documentos), hoy fuera de los contextos | D17 | Se crean sus contextos o se declara fuera de alcance |
 | RA-48 | Decidir si R15 se refuerza con la configuración de cada herramienta (permisos o exclusiones). Hoy es una instrucción: nada impide técnicamente que un asistente abra esas fuentes | R15, D18 | Se configura y se prueba por herramienta, o se acepta como control de conducta |
+| RA-49 | `DEMO.md` describe una versión del portal que `dist/index.html` no carga (FLUJOS §4). Decidir si esos archivos se retiran, se archivan o se integran | R12, R13 | La decisión queda en `DECISIONES.md` y se aplica: los archivos se retiran, salen de `dist/` o se cargan con sus pruebas dentro de las suites; `DEMO.md` describe lo que se carga o se retira |
+| RA-51 | La cola de retroalimentación guarda en disco, cuando responde el conector a una pregunta de baja confianza, la pregunta tal como se escribió, la respuesta y la fecha; no tiene plazo de conservación ni borrado. n8n también guarda ejecuciones (RA-21). Decidir si se conservan, por cuánto tiempo y quién las lee | R15, FLUJOS §2 | La decisión queda registrada y, si pide cambios, están aplicados y probados |
+| RA-52 | El conector recibe la pregunta, la ruta y el área, no documentos fuente, y la cola puede reutilizar lo que respondió. Decidir si el texto generado debe fundamentarse en fuentes definidas | R8, R10 | La decisión queda registrada y, si exige fundamento, hay una prueba |
 
 ## 3. Brechas: el código no cumple una regla
 
@@ -73,6 +79,7 @@ El detalle y las condiciones de cada una están en [`FLUJOS.md`](FLUJOS.md) §4.
 | RA-28 | Probar la burbuja `@n8n/chat` contra un Chat Trigger real | Hay una ejecución en condiciones controladas |
 | RA-29 | Comprobar si el navegador bloquea las llamadas de otra página a la API local | Se prueba en los navegadores de la demo |
 | RA-47 | Probar que Claude Code, Codex y Antigravity cargan `AGENTS.md`, y que ChatGPT sigue el texto pegado | Se registra la prueba de cada herramienta con su versión |
+| RA-50 | Las pruebas dependen del entorno: con `RRHH_API_HOST` distinta de `127.0.0.1` falla una prueba de CORS (reproducido); con Node 22, el comando de JS que exige R12 falla (reportado en el PR #15, no reproducido) | Las suites pasan con la variable definida y el comando funciona en las versiones de Node que indica el README, o el README se corrige |
 
 ## 5. Funcionalidad pendiente
 

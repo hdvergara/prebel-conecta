@@ -20,6 +20,7 @@ create rules of its own.
 | Data | `model/arquitectura.json` | The only source of the orchestrator's thresholds |
 | Record | [`DECISIONES.md`](DECISIONES.md) | Why a rule is what it is, with its status |
 | Open requirements | [`REQUERIMIENTOS_ABIERTOS.md`](REQUERIMIENTOS_ABIERTOS.md) | What is unconfirmed, undecided, unimplemented or unverified. It creates no rule and permits nothing |
+| Tasks | [`especificaciones/TAREAS.md`](especificaciones/TAREAS.md) | A proposal of who moves each open requirement, in what order. It creates no requirement and authorizes nothing |
 
 A file that is not versioned is never a source: nothing in the repository may
 cite it. A PR description or a local plan that conflicts with this file is the

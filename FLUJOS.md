@@ -209,6 +209,9 @@ estaba activo en el servidor del equipo se revisó el 2026-11-27 (RA-21).
 - **Flujo 3 (WhatsApp local) no pasa por el orquestador.**
   `model/whatsapp_service.py` llama a `bot.match(texto)` directo: no tiene
   escalado, reuso ni conector.
+- **`dist/` trae archivos que el portal no carga:** `modelo.js`,
+  `conocimiento.js` y `documentos.js`. `dist/index.html` solo carga
+  `catalogo.js`, `faq.js` y `app.js` (RA-49).
 - **`rank()` de `dist/app.js` es JS puro, sin red** (R2): no comparte código con
   el orquestador ni con `RRHHBot`.
 - **Hay tres detectores de saludo separados:** `rank()` (implícito, por palabras
