@@ -32,6 +32,7 @@ requerimiento abierto está en **exactamente una** tarea
 | TAR-06 | Aplicar el control de acceso en la puerta Web | RA-18 | n8n | TAR-05 | Bloqueada |
 | TAR-30 | Verificar a quien escribe en las puertas de WhatsApp de n8n | RA-19 | n8n | TAR-05 | Bloqueada |
 | TAR-33 | Decidir cuánto se conserva lo que escriben las personas | RA-51 | Equipo, n8n, Portal y API | -- | Lista |
+| TAR-35 | Orientar sin recibir datos personales y decidir la invitación del puente local | RA-54, RA-55 | Equipo, n8n, Portal y API | -- | Lista |
 
 ## Ola 1. Confirmaciones y decisiones de reglas
 
@@ -43,6 +44,7 @@ requerimiento abierto está en **exactamente una** tarea
 | TAR-10 | Confirmar el aviso de texto generado y el acceso sin credenciales entre orígenes | RA-03, RA-06 | Equipo | -- | Lista |
 | TAR-11 | Decidir si el FAQ admite valores ficticios | RA-02 | Equipo | -- | Lista |
 | TAR-31 | Completar los marcadores del FAQ o dejarlos | RA-13 | Equipo | TAR-11 | Bloqueada |
+| TAR-36 | Confirmar la clasificación de las reglas frente a las respuestas de Prebel | RA-53 | Equipo | -- | Lista |
 
 ## Ola 2. Respuestas honestas
 
@@ -66,6 +68,7 @@ requerimiento abierto está en **exactamente una** tarea
 | TAR-21 | Comprobar si el navegador bloquea llamadas de otra página a la API local | RA-29 | Portal y API | -- | Lista |
 | TAR-22 | Probar la carga de instrucciones en cada asistente y decidir si R15 se refuerza | RA-47, RA-48 | Equipo | -- | Lista |
 | TAR-23 | Hacer que las pruebas no dependan del entorno de quien las corre | RA-50 | Portal y API | -- | Lista |
+| TAR-37 | Medir la precisión con preguntas construidas desde los documentos | RA-60 | n8n | -- | Lista |
 
 ## Ola 4. Estructura y evolución
 
@@ -78,6 +81,9 @@ requerimiento abierto está en **exactamente una** tarea
 | TAR-27 | Decidir el alcance del autoservicio y de los archivos del portal que no se cargan | RA-45, RA-49 | Equipo | -- | Lista |
 | TAR-28 | Facilitar el paso de la cola al FAQ | RA-35 | Portal y API | TAR-11, TAR-18 | Bloqueada |
 | TAR-29 | Exportar la puerta Web desde el servidor | RA-36 | n8n | TAR-06 | Bloqueada |
+| TAR-38 | Preguntar el público del colaborador cuando cambie la respuesta | RA-56 | n8n | -- | Lista |
+| TAR-39 | Configurar la matriz de escalamiento, el horario y los canales de emergencia | RA-57, RA-58 | Equipo, n8n | TAR-38 | Bloqueada |
+| TAR-40 | Reporte anónimo de las preguntas sin respuesta | RA-59 | n8n | TAR-33 | Bloqueada |
 
 ## Puntos de partida
 
@@ -97,4 +103,6 @@ Lo que ya se sabe y ahorra trabajo. No cierra ningún requerimiento.
 | TAR-19 | El PR #15 reporta 44 s en una pregunta que fue al Nivel 2, sin indicar si el modelo estaba cargado. El PR #16 reporta las 15 preguntas exactas del FAQ contra la API del servidor; no cubre paráfrasis |
 | TAR-22 | Claude Code cargó `AGENTS.md` mediante `CLAUDE.md` en una sesión de VS Code. No se ha hecho la pregunta de control ni se registró la versión; las otras herramientas no se han probado |
 | TAR-23 | La prueba afectada es `tests/test_rrhh_api.py::test_reply_response_carries_a_cors_header` |
+| TAR-35 | Prebel 5.1 y 2.4. El puente local invita a identificarse: ESC-CAN-03. Escenario nuevo: ESC-CAN-11 |
+| TAR-37 | El juego de preguntas y sus resultados contienen datos reales: quedan fuera del repositorio (R1, R15) |
 | TAR-29 | El cierre de RA-21 dice que la puerta Web estaba activa en el servidor; RA-36 y `n8n/scripts/exportar_flujos.py` dicen que aún no existe allí. Confirmar cuál vale. Lo que se exporte debe cumplir R1 |
