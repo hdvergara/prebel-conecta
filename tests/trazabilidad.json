@@ -60,6 +60,7 @@
     "huella": "190bbb85f4a5d564",
     "citan": [
       "README.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
       "especificaciones/contextos/canales.md",
       "model/empleados_mock.json"
     ]

@@ -25,13 +25,14 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 |---|---|---|---|
 | RA-02 | Confirmar que un valor ficticio en el FAQ se permite si la respuesta dice que es un ejemplo. R5 deja el permiso en espera hasta confirmarlo | R5, D5 | El equipo lo aprueba o lo rechaza |
 | RA-03 | Confirmar la obligación de no presentar texto generado como respuesta del FAQ (agregada al redactar la regla) | R10, D6 | El equipo la aprueba o la corrige |
-| RA-04 | Confirmar el alcance de toda superficie de respuesta, incluida su consecuencia: las puertas de WhatsApp necesitan verificar a la persona, y una lista de teléfonos no basta | R7, R11, D10 | El equipo acepta la consecuencia o enmienda la regla |
+| RA-04 | Confirmar el alcance de toda superficie de respuesta, incluida su consecuencia: las puertas de WhatsApp necesitan verificar a la persona, y una lista de teléfonos no basta | R7, R11, D10 | El equipo acepta la consecuencia o enmienda la regla. Prebel respondió el 2026-11-28 que el número celular por sí solo no basta para entregar información personal de nómina (D20) |
 | RA-05 | Confirmar que la presunción agnóstica decide quién alcanza una superficie, no lo que esta puede hacer en condiciones controladas (acotación agregada al redactar) | CONSTITUTION §0, D10 | El equipo la aprueba o la corrige |
 | RA-06 | Confirmar que el acceso entre orígenes no admite credenciales (condición agregada a la excepción MVP) | R11, D13 | Se confirma, o se enmienda si un ambiente autentica con cookies o autenticación básica |
 | RA-37 | Confirmar cómo pesa la jerarquía normativa: usa las clases de precedencia (protección de datos, disponibilidad, comportamiento), no cuál regla originó la cadena; con peso igual no se ejecuta lo que niega la premisa | R0, D14 | El equipo lo aprueba o define otro criterio para la regla fundacional |
 | RA-40 | Confirmar que una comprobación saltada por falta de git no cuenta como verde (condición agregada al resolver la revisión del PR) | R12, D15 | El equipo la aprueba o la corrige |
 | RA-43 | Confirmar el texto de la regla de especificación primero, con su excepción para reducir exposición y la evidencia manual | R14, D17 | El equipo la aprueba o la corrige |
 | RA-46 | Confirmar el texto de la regla para asistentes de IA: qué fuentes no abren, qué acciones requieren que se las pidan y la excepción autorizada | R15, D18 | El equipo la aprueba o la corrige |
+| RA-53 | Confirmar la clasificación de las reglas frente a las respuestas de Prebel del 2026-11-28 (confirmada, reforzada, en tensión o interna) | D20 | El equipo la aprueba o la corrige |
 
 ## 2. Por decidir
 
@@ -50,8 +51,9 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 | RA-45 | Decidir si se especifica el autoservicio del portal (perfil, trámites, vacaciones, certificados y documentos), hoy fuera de los contextos | D17 | Se crean sus contextos o se declara fuera de alcance |
 | RA-48 | Decidir si R15 se refuerza con la configuración de cada herramienta (permisos o exclusiones). Hoy es una instrucción: nada impide técnicamente que un asistente abra esas fuentes | R15, D18 | Se configura y se prueba por herramienta, o se acepta como control de conducta |
 | RA-49 | `DEMO.md` describe una versión del portal que `dist/index.html` no carga (FLUJOS §4). Decidir si esos archivos se retiran, se archivan o se integran | R12, R13 | La decisión queda en `DECISIONES.md` y se aplica: los archivos se retiran, salen de `dist/` o se cargan con sus pruebas dentro de las suites; `DEMO.md` describe lo que se carga o se retira |
-| RA-51 | La cola de retroalimentación guarda en disco, cuando responde el conector a una pregunta de baja confianza, la pregunta tal como se escribió, la respuesta y la fecha; no tiene plazo de conservación ni borrado. n8n también guarda ejecuciones (RA-21). Decidir si se conservan, por cuánto tiempo y quién las lee | R15, FLUJOS §2 | La decisión queda registrada y, si pide cambios, están aplicados y probados |
+| RA-51 | La cola de retroalimentación guarda en disco, cuando responde el conector a una pregunta de baja confianza, la pregunta tal como se escribió, la respuesta y la fecha; no tiene plazo de conservación ni borrado. n8n también guarda ejecuciones (RA-21). Decidir si se conservan, por cuánto tiempo y quién las lee. Prebel respondió el 2026-11-28 que en esta fase no se guardan conversaciones (D20) | R15, FLUJOS §2, D20 | La decisión queda registrada y, si pide cambios, están aplicados y probados |
 | RA-52 | El conector recibe la pregunta, la ruta y el área, no documentos fuente, y la cola puede reutilizar lo que respondió. Decidir si el texto generado debe fundamentarse en fuentes definidas | R8, R10 | La decisión queda registrada y, si exige fundamento, hay una prueba |
+| RA-54 | Decidir si el puente local deja de invitar a identificarse con un documento escrito en el chat: Prebel prefiere que el asistente indique a quién acudir sin recibir datos personales | R4, R7, D20 | Se retira la invitación, o se justifica para la demo local con datos ficticios |
 
 ## 3. Brechas: el código no cumple una regla
 
@@ -80,6 +82,7 @@ El detalle y las condiciones de cada una están en [`FLUJOS.md`](FLUJOS.md) §4.
 | RA-29 | Comprobar si el navegador bloquea las llamadas de otra página a la API local | Se prueba en los navegadores de la demo |
 | RA-47 | Probar que Claude Code, Codex y Antigravity cargan `AGENTS.md`, y que ChatGPT sigue el texto pegado | Se registra la prueba de cada herramienta con su versión |
 | RA-50 | Las pruebas dependen del entorno: con `RRHH_API_HOST` distinta de `127.0.0.1` falla una prueba de CORS (reproducido); con Node 22, el comando de JS que exige R12 falla (reportado en el PR #15, no reproducido) | Las suites pasan con la variable definida y el comando funciona en las versiones de Node que indica el README, o el README se corrige |
+| RA-60 | Medir la precisión con un juego de preguntas construido desde los documentos reales, fuera del repositorio: es el criterio de evaluación de Prebel (responder solo con las bases de conocimiento, sin inventar). Relacionado con RA-52 | Hay un resultado por pregunta, guardado fuera del repositorio, y un resumen sin datos reales en el PR |
 
 ## 5. Funcionalidad pendiente
 
@@ -100,10 +103,15 @@ Ordena **solo esta sección**: no antecede a las brechas de acceso
 | RA-30 | P3 | El portal no ofrece "seguir buscando": nunca envía `seguir` | R8 | RA-31, RA-32, RA-26 | Sin conector ni cola, el botón devolvería la misma respuesta; con un modelo lento, el portal la perdería |
 | RA-33 | P3 | WhatsApp local no pasa por el orquestador | FLUJOS §4 | Decidirlo; RA-34 (cerrado) como referencia del aviso | Al unificarlo, ese canal puede recibir texto generado: necesita el aviso (R10) y revisar cómo personaliza con datos (R7) |
 | RA-35 | P4 | Llevar una respuesta de la cola al FAQ es manual: solo se puede listar | R5, D4 | RA-02, RA-26 | La revisión manual es la decisión vigente; facilitarla exige además cumplir R1 |
+| RA-55 | P1 | El asistente debe orientar sin recibir datos personales, documentos ni aprobar trámites; los temas fuera de alcance no están especificados | R7, D20 | -- | Es lo primero que Prebel pide proteger |
+| RA-56 | P2 | Preguntar a qué público pertenece el colaborador solo cuando la respuesta dependa de ello, y conservarlo durante la conversación | R7, D20 | -- | Varias respuestas cambian por público; la selección no es autenticación |
+| RA-57 | P3 | Matriz de escalamiento configurable por tema y público, fuera del código y del repositorio | R1, R5, D20 | RA-56 | Los contactos son datos reales: se configuran por despliegue |
+| RA-58 | P3 | Horario de atención y tiempos de respuesta configurables. Fuera de horario, el asistente informa sin prometer atención inmediata; los canales de emergencia se dan siempre | R5, D20 | RA-57 | Hoy no hay horario definido; los canales de emergencia no deben esperar |
+| RA-59 | P4 | Reporte periódico, agregado y anónimo, de las preguntas sin respuesta | R1, D20 | RA-51 | Depende de qué se pueda guardar |
 | RA-36 | P4 | `n8n/scripts/exportar_flujos.py` no exporta la puerta Web, que aún no tiene identificador en el servidor | -- | RA-18 | La puerta no puede activarse mientras no cumpla R11 |
 
-Orden de trabajo propuesto: RA-31 (aviso) → RA-32 → RA-30 → RA-33 →
-RA-35 y RA-36.
+Orden de trabajo propuesto: RA-31 (aviso) → RA-55 → RA-32 → RA-56 → RA-30 →
+RA-33 → RA-57 y RA-58 → RA-35, RA-36 y RA-59.
 
 Cada punto de esta sección se cierra cuando está implementado y probado, o
 cuando se decide no hacerlo.

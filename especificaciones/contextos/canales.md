@@ -36,3 +36,7 @@ portal y en el Cerebro. El detalle está en [`FLUJOS.md`](../../FLUJOS.md).
 | ESC-CAN-08 | Dada la puerta Web de n8n activa, cuando la alcanza alguien no controlado, entonces se rechaza antes de procesar (R11) | RA-18 |
 | ESC-CAN-09 | Dado el puente local, cuando está en marcha, entonces nadie no controlado lo alcanza (R11) | RA-20 |
 | ESC-CAN-10 | Dada una puerta de WhatsApp de n8n activa, cuando escribe alguien no verificado, entonces se rechaza antes de procesar (R11) | RA-19 |
+| ESC-CAN-11 | Dado un trámite que exige datos personales, cuando se pregunta por él, entonces el asistente indica a quién acudir y no pide ni recibe documentos | RA-55 |
+| ESC-CAN-12 | Dada una pregunta cuya respuesta cambia según el público del colaborador, cuando no se conoce su público, entonces el asistente lo pregunta una vez y lo conserva durante la conversación, sin tomarlo como autenticación (R7) | RA-56 |
+| ESC-CAN-13 | Dada una emergencia o un accidente, cuando se pregunta fuera del horario de atención, entonces el asistente entrega los canales de emergencia sin condicionarlos al horario | RA-58 |
+| ESC-CAN-14 | Dado un caso que necesita a una persona, cuando no hay atención humana disponible, entonces el asistente no promete una respuesta inmediata | RA-58 |

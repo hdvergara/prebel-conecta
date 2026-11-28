@@ -27,6 +27,7 @@ Registro de por qué las reglas son como son. No crea reglas: las reglas viven e
 | D17 | El repositorio trabaja con especificación primero y diseño guiado por el dominio, sin mover código, en Markdown propio. La carpeta es `especificaciones/` porque `specs/` y `.specs/` guardan documentos reales y git las ignora | R1, R13, R14 | Vigente. El texto de R14 está por confirmar (RA-43) |
 | D18 | Los asistentes (Claude, ChatGPT, Codex, Antigravity) comparten una sola fuente, `AGENTS.md`, con adaptadores sin contenido propio. Lo que un asistente puede leer y hacer es una regla (R15), no una instrucción de herramienta | R12, R13, R15 | Vigente. El texto de R15 está por confirmar (RA-46) |
 | D19 | Las tareas se derivan de los requerimientos abiertos, uno en exactamente una tarea, sin repetir su texto. Responsables y orden son una propuesta | R13, R14, R15 | Vigente |
+| D20 | Las respuestas de Prebel a las preguntas de los equipos (2026-11-28) entran como requerimientos y no cambian ninguna regla. Cada regla se clasifica frente a ellas (ver [Reglas frente a las respuestas de Prebel](#reglas-frente-a-las-respuestas-de-prebel)). El documento original tiene datos reales y queda fuera del repositorio (R1) | R0, R1, R13 | Vigente. Por confirmar (RA-53) |
 
 Notas:
 
@@ -87,6 +88,35 @@ reglas es irrelevante: lo que importa es la cadena conceptual entre ellas.
 - **Jerarquía normativa (*lex superior*):** se asigna un peso mayor a la regla
   fundacional A. Si la cadena transitiva genera un choque, la regla A bloquea
   automáticamente la ejecución de C.
+
+## Reglas frente a las respuestas de Prebel
+
+Clasificación de D20. Prebel aclaró que las propuestas de los equipos son
+decisiones aún no aprobadas por la empresa. Las respuestas se citan por su
+número de pregunta, sin copiar el documento.
+
+- **Confirmada:** Prebel pide lo mismo que la regla.
+- **Reforzada:** Prebel da una razón de negocio para la regla.
+- **En tensión:** la regla se cumple, pero algo que se apoya en ella choca con
+  lo que Prebel pide. Se sigue como requerimiento.
+- **Interna:** Prebel no la toca.
+
+| Regla | Clase | Respuesta de Prebel | Requerimiento |
+|---|---|---|---|
+| R7 | Confirmada | 2.3: el número celular por sí solo no basta como autenticación | RA-04, RA-56 |
+| R10 | Confirmada | 7.1 y 7.2: precisión, sin inventar, solo con las bases de conocimiento | RA-52, RA-60 |
+| R1 | Reforzada | 1.1: los contactos no van incorporados en el código | RA-57 |
+| R5 | Reforzada | 1.2, 1.3 y 3.4: horarios, tiempos de respuesta y valores se configuran | RA-58 |
+| R8 | Reforzada | 6.3: los documentos se actualizan con RAG, sin reentrenar | -- |
+| R9 | Reforzada | 5.4 y 5.5: el modelo se elige al pasar a producción y se usa por API | -- |
+| R11 | Reforzada | 6.4: el número de WhatsApp de la empresa se comparte solo tras validar la iniciativa | -- |
+| R3, R6, R15 | Reforzada | 5.4: el uso de modelos en la nube se revisa con la empresa | -- |
+| R4 | En tensión | 5.1: el asistente indica a quién acudir y no recibe la cédula | RA-54, RA-55 |
+| R8 (reuso de la cola) | En tensión | 5.3: en esta fase no se guardan conversaciones | RA-51, RA-59 |
+| R0, R2, R12, R13, R14 | Interna | -- | -- |
+
+Ninguna fila cambia el texto de una regla, así que no agrega cadenas a la
+matriz. Si resolver RA-51 o RA-54 cambia una regla, se aplica R0.
 
 ## Matriz de transitividad
 
