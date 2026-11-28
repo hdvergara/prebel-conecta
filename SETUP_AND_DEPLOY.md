@@ -103,4 +103,5 @@ n8n local" de [`n8n/README.md`](n8n/README.md).
 | Cambiar un flujo de n8n (Cerebro o una puerta) | `n8n/README.md`, valida primero con n8n local (§4) |
 | Desplegar el contenedor del Tier 1 en el servidor del equipo | `Dockerfile`, `n8n/README.md` → "Cómo montarlo en otro n8n" |
 | Abrir un PR | este documento §3, `CONSTITUTION.md` R12 (qué debe quedar en verde) |
+| Cambiar cómo responde algo | [`especificaciones/`](especificaciones/README.md): primero el escenario |
 | Cambiar una regla | `CONSTITUTION.md` §0 (control de transitividad), `DECISIONES.md` |
