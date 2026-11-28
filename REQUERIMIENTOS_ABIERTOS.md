@@ -40,7 +40,6 @@ suspende ninguna regla: si algo queda en espera, lo dice la propia regla.
 |---|---|---|---|
 | RA-07 | Habilitar o no CORS en el contenedor. Hoy está apagado y una prueba lo exige; la excepción MVP permite abrirlo | R11, FLUJOS §4 | Se decide según exista o no un portal en otro origen que lo llame |
 | RA-08 | Definir los ambientes y cómo se cruzan. De esto depende el fin de la excepción MVP | R11, D13 | Los ambientes quedan registrados como decisión |
-| RA-09 | Elegir el control de acceso de las superficies: puertas de WhatsApp, puerta Web y cualquier proxy | R7, R11 | Hay un mecanismo decidido que verifica a quien pregunta |
 | RA-10 | Definir cómo funciona la demo publicada: un proxy como `/api/reply` exige control de acceso en la página y en la ruta; sin él, el recuadro queda sin backend | R2, R3, R11 | Se elige una de las dos vías |
 | RA-11 | Decidir si la política de orígenes de la puerta Web de n8n entra en la excepción MVP, que hoy cubre solo la API. No sustituye al control de acceso | R11 | Se amplía la excepción o se confirma que no |
 | RA-13 | Completar los marcadores del FAQ (13 de 15 entradas). Depende de RA-02; los valores reales no pueden entrar al repositorio | R1, R5 | Se completan o se decide dejarlos |
@@ -116,6 +115,15 @@ RA-33 → RA-57 y RA-58 → RA-35, RA-36 y RA-59.
 Cada punto de esta sección se cierra cuando está implementado y probado, o
 cuando se decide no hacerlo.
 
+## 6. Deuda funcional
+
+Funcionalidad que el equipo deja sin definir por ahora. Sigue abierta y **no
+suspende ninguna regla**.
+
+| ID | Deuda | Mientras tanto | Se cierra cuando |
+|---|---|---|---|
+| RA-09 | El mecanismo de autenticación o MFA que verifique a quien pregunta no está definido, ni el control de acceso de las puertas de WhatsApp, la puerta Web y cualquier proxy (D21) | Ninguna superficie queda al alcance de un llamador no controlado (R11), y la identificación por teléfono o documento no se presenta como segura ni se extiende a nada sensible (R7). Las brechas que dependen de esto siguen abiertas | Hay un mecanismo decidido que verifica a quien pregunta |
+
 ## Cerrados
 
 | ID | Requerimiento | Cierre |
@@ -123,6 +131,6 @@ cuando se decide no hacerlo.
 | RA-01 | Redacción de la salvaguarda de transitividad, con su definición y su procedimiento | Aprobada por el equipo, con ejemplo formal ([`DECISIONES.md`](DECISIONES.md), D14) |
 | RA-15 | B1: n8n podía enviar texto generado sin aviso de IA | 2026-11-27. El nodo *¿Hay respuesta segura del FAQ?* del Cerebro exige además `capa` en `['predictivo','ml']` (lista de valores permitidos); lo demás sigue al Nivel 2, que avisa. Evidencia en el PR: casos 1–9 de la tarea y dos preguntas reales en el servidor |
 | RA-34 | El Cerebro de n8n no usaba `tipo` ni `capa` de la API | 2026-11-27, junto con RA-15: usa `capa`; `tipo` no hace falta para esta regla |
-| RA-21 | Comprobar qué está activo en el servidor del equipo y quién lo alcanza | 2026-11-27. La puerta Web y la de Evolution estaban activas, sin control de acceso y conectadas a documentos reales: se apagaron ese día. Las ejecuciones guardadas (desde el 2026-11-23) solo muestran personas del equipo; las anteriores ya no existen. La puerta Emulador sigue activa detrás del inicio de sesión del emulador (B5 sigue abierta). También se quitó un proxy `/api/reply` del portal del servidor (RA-10, RA-16). La demo se muestra desde una sesión de n8n |
+| RA-21 | Comprobar qué está activo en el servidor del equipo y quién lo alcanza | 2026-11-27. La puerta Web y la de Evolution estaban activas, sin control de acceso y conectadas a documentos reales: se apagaron ese día. Las ejecuciones guardadas (desde el 2026-11-23) solo muestran personas del equipo; las anteriores ya no existen. La puerta Emulador seguía activa y se apagó después; según reporta el 2026-11-28 quien administra n8n, a quien le corresponde comprobarlo, solo el Cerebro está activo. **Corrección (2026-11-28):** este cierre decía que esa puerta estaba detrás del inicio de sesión del emulador; no se confirmó ningún inicio de sesión. B5 sigue abierta. También se quitó un proxy `/api/reply` del portal del servidor (RA-10, RA-16). La demo se muestra desde una sesión de n8n |
 | RA-12 | Resolver que el FAQ ficticio tape temas del RAG de n8n | 2026-11-27, con D16: el Cerebro descarta las respuestas del Nivel 1 que traen marcadores `[…]`. Evidencia en el PR: las 15 preguntas del FAQ contra la API del servidor (13 van al Nivel 2, vivienda y cesantías se quedan en el Nivel 1) y pruebas reales en el Cerebro. Vivienda y cesantías: RA-42 |
 | RA-42 | Decidir si las dos entradas del FAQ sin marcadores (crédito de vivienda y retiro de cesantías) también deben ir al Nivel 2 del Cerebro | 2026-11-27, decisión del equipo: se quedan en el Nivel 1, porque responden completas y superan el umbral. Sin cambios en el Cerebro (D16) |

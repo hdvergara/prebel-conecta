@@ -24,7 +24,7 @@ requerimiento abierto está en **exactamente una** tarea
 
 | ID | Tarea | Requerimientos | Responsable | Depende de | Estado |
 |---|---|---|---|---|---|
-| TAR-01 | Poner el puente local de WhatsApp en condiciones controladas | RA-20 | Portal y API | -- | Lista |
+| TAR-01 | Poner el puente local de WhatsApp en condiciones controladas | RA-20 | Cualquier colaborador | -- | Lista |
 | TAR-02 | Elegir cómo funciona la demo publicada e impedir que la API se abra por descuido | RA-10, RA-16 | Portal y API, Equipo | -- | Lista |
 | TAR-03 | Impedir el ciclo entre la API y n8n | RA-17 | Portal y API, n8n | -- | Lista |
 | TAR-04 | Confirmar el alcance de las superficies y de la presunción sobre datos | RA-04, RA-05 | Equipo | -- | Lista |
@@ -91,9 +91,9 @@ Lo que ya se sabe y ahorra trabajo. No cierra ningún requerimiento.
 
 | Tarea | Punto de partida |
 |---|---|
-| TAR-01 | `model/whatsapp_service.py` tiene fijo que escuche en todas las interfaces y un secreto por defecto público: nada de eso está corregido. Escenario: ESC-CAN-09 |
+| TAR-01 | `model/whatsapp_service.py` tiene fijo que escuche en todas las interfaces y un secreto por defecto público: nada de eso está corregido. El puente es agnóstico al entorno: cada colaborador responde solo por las pruebas en el suyo y debe poder variar su configuración a voluntad. La corrección no puede suponer una red privada, la ausencia de un túnel ni un emulador concreto; hoy la dirección de escucha no es configurable. Variar la configuración no suspende R11. Escenario: ESC-CAN-09 |
 | TAR-02 | Ver el cierre de RA-21. Mostrar la demo desde n8n no es por sí misma ninguna de las dos vías de RA-10: el equipo debe elegir una |
-| TAR-05 | Cerrar la decisión no prueba su aplicación: eso son ESC-CAN-08 (TAR-06) y ESC-CAN-10 (TAR-30) |
+| TAR-05 | RA-09 es deuda funcional: no hay mecanismo ni fecha, así que TAR-06 y TAR-30 siguen bloqueadas. Apagar una puerta no espera. Cerrar la decisión no prueba su aplicación: eso son ESC-CAN-08 (TAR-06) y ESC-CAN-10 (TAR-30) |
 | TAR-06 | Ver el cierre de RA-21. La puerta Web debe seguir apagada hasta cumplir R11. Escenario: ESC-CAN-08 |
 | TAR-30 | Ver el cierre de RA-21. Una puerta apagada sigue apagada hasta cumplir R11. Escenario: ESC-CAN-10 |
 | TAR-12 | El portal no lee `capa`. Su parte urgente es el aviso, cuyo escenario ya existe: ESC-CAN-07 |

@@ -28,6 +28,7 @@ Registro de por qué las reglas son como son. No crea reglas: las reglas viven e
 | D18 | Los asistentes (Claude, ChatGPT, Codex, Antigravity) comparten una sola fuente, `AGENTS.md`, con adaptadores sin contenido propio. Lo que un asistente puede leer y hacer es una regla (R15), no una instrucción de herramienta | R12, R13, R15 | Vigente. El texto de R15 está por confirmar (RA-46) |
 | D19 | Las tareas se derivan de los requerimientos abiertos, uno en exactamente una tarea, sin repetir su texto. Responsables y orden son una propuesta | R13, R14, R15 | Vigente |
 | D20 | Las respuestas de Prebel a las preguntas de los equipos (2026-11-28) entran como requerimientos y no cambian ninguna regla. Cada regla se clasifica frente a ellas (ver [Reglas frente a las respuestas de Prebel](#reglas-frente-a-las-respuestas-de-prebel)). El documento original tiene datos reales y queda fuera del repositorio (R1) | R0, R1, R13 | Vigente. Por confirmar (RA-53) |
+| D21 | El mecanismo de autenticación o MFA queda como deuda funcional (RA-09). No cambia ni suspende ninguna regla | R7, R11 | Vigente |
 
 Notas:
 
@@ -173,6 +174,8 @@ aquí no está revisada.
 | Tareas, cierre | Cerrar un requerimiento → la prueba exige editar las tareas → "las tareas no crean nada" | El cierre tenía un paso que su procedimiento no decía | El paso está en el procedimiento de cierre de los requerimientos |
 | Especificación, tareas | Escenario con evidencia en una decisión → se cierra la decisión → R14 exige prueba o comprobación manual | El escenario de las puertas quedaba sin evidencia válida | Un escenario por puerta, con evidencia en la brecha que lo aplica |
 | Tareas, exposición | TAR-16 "reproducir antes de corregir" → orden de olas → reducir exposición no espera | Reproducir podía frenar una corrección o pedir reactivar puertas | Se reproduce en condiciones controladas y corregir no espera |
+| Identidad, deuda | Autenticación como deuda funcional → "puede esperar" → una puerta o un dato sensible sin verificar → R11 y R7 | Aplazar el mecanismo podía leerse como permiso para activar sin él | La deuda no suspende reglas: lo no controlado sigue sin alcanzar ninguna superficie y la identificación básica no se amplía |
+| Puente local, configuración | Configuración a voluntad de cada colaborador → abrir la escucha o dejar el secreto público → R11 | La libertad de configurar podía leerse como permiso para dejar el puente al alcance de cualquiera | Cada quien configura y prueba su entorno; eso no suspende R11 |
 | Pruebas | `tests/*.cjs` fuera de las suites → R12 → `DEMO.md` | Una guía remitía a pruebas que no cuentan para dar algo por terminado | Se registra en RA-49; no se cambia R12 |
 | Portal | R11 → R2 | Sin superficie pública, el recuadro del modelo no responde en una copia publicada | Lo permite R2: el portal funciona sin backend |
 | Pruebas | R12 → R2 | Las pruebas de extremo a extremo no podían depender del backend | Interceptan toda llamada a la API |
