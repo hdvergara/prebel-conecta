@@ -47,7 +47,9 @@ def test_the_chatgpt_block_fits_the_smallest_instruction_limit():
     """Given the block to paste into ChatGPT.
     When its length is measured.
     Then it fits in 1500 characters."""
-    bloque = re.search(r"```text\n(.*?)```", _texto(INSTRUMENTOS / "chatgpt.md"), re.DOTALL)[1]
+    match = re.search(r"```text\n(.*?)```", _texto(INSTRUMENTOS / "chatgpt.md"), re.DOTALL)
+    assert match, "No se encontró un bloque ```text ... ``` en especificaciones/instrumentos/chatgpt.md"
+    bloque = match.group(1)
     assert 0 < len(bloque) <= 1500
 
 

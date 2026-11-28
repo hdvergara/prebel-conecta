@@ -92,7 +92,9 @@ def test_dependencies_between_contexts_are_the_declared_ones():
             reales[contexto] |= {dueno[n] for n in nombres if n in dueno and dueno[n] != contexto}
     declaradas = {}
     for contexto, texto in CONTEXTOS.items():
-        lista = re.search(r"^\*\*Depende de:\*\* (.+)$", texto, re.MULTILINE)[1]
+        match = re.search(r"^\*\*Depende de:\*\* (.+)$", texto, re.MULTILINE)
+        assert match, f"{contexto}.md: falta la línea '**Depende de:** ...'"
+        lista = match.group(1)
         declaradas[contexto] = set() if lista == "ninguno" else set(lista.split(", "))
     assert reales == declaradas
 
