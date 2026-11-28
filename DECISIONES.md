@@ -25,6 +25,7 @@ Registro de por qué las reglas son como son. No crea reglas: las reglas viven e
 | D15 | Sin git, las comprobaciones que necesitan la lista de archivos se saltan con su motivo, sin lista alternativa. Un salto no cuenta como verde | R12 | Vigente. Por confirmar (RA-40) |
 | D16 | En el Cerebro de n8n, una respuesta del Nivel 1 que trae un marcador entre corchetes del FAQ ficticio no se usa: la pregunta sigue al Nivel 2, que responde con los documentos reales. El FAQ conserva sus marcadores y no cambia (cierra RA-12). Las entradas sin marcadores que superan el umbral siguen en el Nivel 1 (RA-42) | R1, R5, R8 | Vigente |
 | D17 | El repositorio trabaja con especificación primero y diseño guiado por el dominio, sin mover código, en Markdown propio. La carpeta es `especificaciones/` porque `specs/` y `.specs/` guardan documentos reales y git las ignora | R1, R13, R14 | Vigente. El texto de R14 está por confirmar (RA-43) |
+| D18 | Los asistentes (Claude, ChatGPT, Codex, Antigravity) comparten una sola fuente, `AGENTS.md`, con adaptadores sin contenido propio. Lo que un asistente puede leer y hacer es una regla (R15), no una instrucción de herramienta | R12, R13, R15 | Vigente. El texto de R15 está por confirmar (RA-46) |
 
 Notas:
 
@@ -128,5 +129,10 @@ aquí no está revisada.
 | Especificaciones, datos | Carpeta de especificaciones → `specs/` → R1 | La carpeta habitual es la de documentos reales, ignorada por git | Se usa `especificaciones/` |
 | Especificaciones, pruebas | R14 (evidencia) → n8n sin pruebas automáticas → R12 | Exigir prueba automática habría impedido todo cambio en n8n | La evidencia puede ser un requerimiento cuyo cierre registra la comprobación manual |
 | Especificaciones, autoridad | Escenario → permiso implícito → R0, R10, R11 | Un escenario podía leerse como permiso | R14: un escenario no permite lo que una regla prohíbe |
+| Asistentes, datos | R1 (protege el repositorio) → asistente lee `.specs/` → proveedor del modelo → presunción | Los documentos reales podían salir de la máquina sin tocar el repositorio | R15 reserva esas fuentes |
+| Asistentes, autoridad | Instrumento → "no abras" → nivel sin reglas → R13 | La prohibición habría sido una regla escrita en un archivo que no puede crearlas | Es R15; los instrumentos la citan |
+| Asistentes, secretos | Excepción de R15 (autorizar lectura) → `.env` → R6 | La excepción podía alcanzar los secretos | La excepción nunca cubre secretos ni permite publicar el contenido |
+| Asistentes, exposición | R15 (no cambia superficies sin que se lo pidan) → R14 (reducir exposición no espera) → R11 | Podía leerse como freno a apagar una puerta | Limita al asistente por iniciativa propia; si la persona lo pide, actúa sin esperar especificación |
+| Asistentes, verificación | ChatGPT sin ejecución → "terminado" → R12 | Un asistente que no ejecuta podía dar algo por verificado | Su texto prohíbe afirmarlo; R12 verifica fuera |
 | Portal | R11 → R2 | Sin superficie pública, el recuadro del modelo no responde en una copia publicada | Lo permite R2: el portal funciona sin backend |
 | Pruebas | R12 → R2 | Las pruebas de extremo a extremo no podían depender del backend | Interceptan toda llamada a la API |

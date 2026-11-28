@@ -23,6 +23,10 @@ lenguaje común y el ciclo de un cambio están en
 [`especificaciones/`](especificaciones/README.md). No es `specs/` ni `.specs/`,
 que guardan documentos reales y git ignora.
 
+Si trabajas con un asistente de IA (Claude, ChatGPT, Codex, Antigravity u otro),
+todos parten de [`AGENTS.md`](AGENTS.md); cómo conectar cada uno está en
+[`especificaciones/instrumentos/`](especificaciones/instrumentos/README.md).
+
 ## Requerimientos abiertos
 
 Lo que no está confirmado, decidido, implementado o verificado está en

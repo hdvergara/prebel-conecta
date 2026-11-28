@@ -16,6 +16,7 @@ create rules of its own.
 | Specifications | [`especificaciones/`](especificaciones/README.md) | What each domain context must do: language, boundaries and acceptance scenarios with their evidence. It cites rules and creates none |
 | 1 — Behaviour | [`FLUJOS.md`](FLUJOS.md) | What the code does today, including known gaps against these rules |
 | 2 — Operation | [`README.md`](README.md), [`SETUP_AND_DEPLOY.md`](SETUP_AND_DEPLOY.md), [`n8n/README.md`](n8n/README.md), `MODEL_*.md` | How to install, run and test |
+| Assistant instruments | [`AGENTS.md`](AGENTS.md), its adapters and `especificaciones/instrumentos/` | How an AI assistant follows the levels above. It creates no rule |
 | Data | `model/arquitectura.json` | The only source of the orchestrator's thresholds |
 | Record | [`DECISIONES.md`](DECISIONES.md) | Why a rule is what it is, with its status |
 | Open requirements | [`REQUERIMIENTOS_ABIERTOS.md`](REQUERIMIENTOS_ABIERTOS.md) | What is unconfirmed, undecided, unimplemented or unverified. It creates no rule and permits nothing |
@@ -43,7 +44,7 @@ text must be fixed. It only says what to protect in the meantime, if a
 situation nobody foresaw makes two rules impossible to meet. This is the
 normative hierarchy of R0: the lower class number weighs more.
 
-1. **Data protection:** R1, R3, R4, R5, R6, R7, R11.
+1. **Data protection:** R1, R3, R4, R5, R6, R7, R11, R15.
 2. **Availability:** R2, R8.
 3. **Demo behaviour and engineering:** R9, R10, R12, R13, R14.
 
@@ -289,3 +290,17 @@ each one behaves is described in level 1.
 - **Exception:** reducing exposure, such as taking an answer surface offline or
   tightening access to meet R1 or R11, never waits for this rule. The
   specification is updated afterwards.
+
+### R15 — AI assistants
+- **Subjects:** AI assistants, real data, secrets, queue, actions.
+- **Rule:** these rules bind any AI assistant working on the project, whatever
+  the tool. What an assistant reads may leave the machine for a model provider,
+  so it must not open, upload, quote or paste the real document sources
+  (`.specs/`, `specs/`, `n8n/data/`, `n8n/insumos/`), files named `*.real.*`,
+  `.env`, or the queue.
+- It does not commit, push, merge, deploy or change a running answer surface
+  unless the person asks for it. That person remains accountable for the result,
+  which is verified like any other change (R12).
+- **Exception:** a person may explicitly authorize reading one of those sources
+  for a task that needs it, knowing where it will be sent. It never allows its
+  content into the repository (R1), and never covers secrets.

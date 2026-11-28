@@ -1,15 +1,18 @@
 {
   "§0": {
-    "huella": "4e94b1edde4b9d01",
+    "huella": "67bdfed8ebdfcacf",
     "citan": []
   },
   "R0": {
     "huella": "19d6e2aeacd9ee1b",
     "citan": [
       ".github/pull_request_template.md",
+      "AGENTS.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "especificaciones/README.md",
       "especificaciones/cambios/PLANTILLA.md",
+      "especificaciones/instrumentos/chatgpt.md",
+      "especificaciones/instrumentos/transitividad.md",
       "tests/test_documentacion.py"
     ]
   },
@@ -17,12 +20,14 @@
     "huella": "f3347db4579b70da",
     "citan": [
       ".github/pull_request_template.md",
+      "AGENTS.md",
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "e2e/tests/tramites.spec.js",
       "especificaciones/README.md",
       "especificaciones/contextos/faq.md",
       "especificaciones/contextos/retroalimentacion.md",
+      "especificaciones/instrumentos/revisar.md",
       "model/empleados_mock.json",
       "model/retroalimentacion.py"
     ]
@@ -61,6 +66,7 @@
   "R5": {
     "huella": "14d6fe729838ab58",
     "citan": [
+      "AGENTS.md",
       "FLUJOS.md",
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
@@ -78,12 +84,14 @@
   "R6": {
     "huella": "2c89e60ab071e27b",
     "citan": [
+      "AGENTS.md",
       "especificaciones/contextos/canales.md"
     ]
   },
   "R7": {
     "huella": "9d7be6b6a7d0fd1e",
     "citan": [
+      "AGENTS.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "especificaciones/contextos/canales.md",
       "model/whatsapp_service.py",
@@ -128,6 +136,7 @@
       "especificaciones/contextos/canales.md",
       "especificaciones/contextos/respuesta.md",
       "especificaciones/contextos/retroalimentacion.md",
+      "especificaciones/instrumentos/revisar.md",
       "n8n/README.md",
       "n8n/workflows/03-cerebro-ia.json"
     ]
@@ -135,6 +144,7 @@
   "R11": {
     "huella": "80eae1352b9d7ed5",
     "citan": [
+      "AGENTS.md",
       "Dockerfile",
       "FLUJOS.md",
       "README.md",
@@ -142,6 +152,7 @@
       "dist/app.js",
       "especificaciones/contextos/canales.md",
       "especificaciones/contextos/respuesta.md",
+      "especificaciones/instrumentos/revisar.md",
       "model/rrhh_api.py",
       "n8n/README.md",
       "n8n/workflows/04-puerta-web.json",
@@ -152,17 +163,20 @@
     "huella": "4654edc90f2d08b7",
     "citan": [
       ".github/pull_request_template.md",
+      "AGENTS.md",
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "SETUP_AND_DEPLOY.md",
       "especificaciones/README.md",
       "especificaciones/cambios/PLANTILLA.md",
+      "especificaciones/instrumentos/implementar.md",
       "tests/test_documentacion.py"
     ]
   },
   "R13": {
     "huella": "034d20c3529e42c8",
     "citan": [
+      "especificaciones/instrumentos/README.md",
       "tests/test_documentacion.py"
     ]
   },
@@ -170,10 +184,21 @@
     "huella": "5d14d548d4d5c757",
     "citan": [
       ".github/pull_request_template.md",
+      "AGENTS.md",
       "README.md",
       "REQUERIMIENTOS_ABIERTOS.md",
       "especificaciones/README.md",
       "tests/test_especificaciones.py"
+    ]
+  },
+  "R15": {
+    "huella": "f75ed584e28befaf",
+    "citan": [
+      "AGENTS.md",
+      "REQUERIMIENTOS_ABIERTOS.md",
+      "especificaciones/instrumentos/README.md",
+      "especificaciones/instrumentos/chatgpt.md",
+      "especificaciones/instrumentos/implementar.md"
     ]
   }
 }

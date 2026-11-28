@@ -17,6 +17,7 @@ el dominio**, sin mover el código.
 | [`contextos/retroalimentacion.md`](contextos/retroalimentacion.md) | Cola y reuso |
 | [`contextos/canales.md`](contextos/canales.md) | Portal, WhatsApp y n8n |
 | [`cambios/PLANTILLA.md`](cambios/PLANTILLA.md) | Plantilla para especificar un cambio |
+| [`instrumentos/`](instrumentos/README.md) | Cómo trabajan los asistentes de IA, con cualquier herramienta |
 
 ## Qué va en cada sitio
 
